@@ -1,0 +1,15 @@
+fastapi[all]
+sqlmodel
+mysqlclient
+
+# Use for sending mail
+fastapi-mail
+
+# Use for create username
+Unidecode
+
+# Use for Token JTW
+python-jose[cryptography]
+
+# Use for password
+passlib[bcrypt]
