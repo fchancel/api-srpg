@@ -14,6 +14,7 @@ from sqlmodel import SQLModel, Field
 #               3.User                             #
 #               4.Character                        #
 #               5.Mission                          #
+#               6.Stats                            #
 # -------------------------------------------------#
 
 # -------------------------------------------------#
@@ -193,10 +194,24 @@ class StepResponse(SQLModel):
     character: CharacterBase
     choices: List[ChoiceResponse]
 
+
 class FinalResult(SQLModel):
     mission_id: int
     description: str
-    value:str
+    value: str
+
 
 class TimeLeft(SQLModel):
     time: datetime
+
+
+# -------------------------------------------------#
+#                                                  #
+#               6.Stats                            #
+#                                                  #
+# -------------------------------------------------#
+
+class RankStatBase(SQLModel):
+    rank: str
+    win: int = Field(default=0)
+    fail: int = Field(default=0)

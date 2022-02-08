@@ -360,7 +360,7 @@ def update_mission_playing(db: Session, mission_playing: MissionPlaying, percent
     return mission_playing
 
 
-def delete_mission_db(db: Session, mission_playing: MissionPlaying) -> None:
+def delete_mission_playing_db(db: Session, mission_playing: MissionPlaying) -> None:
     db.delete(mission_playing)
     db.commit()
     return

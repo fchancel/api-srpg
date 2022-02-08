@@ -3,9 +3,9 @@ from datetime import datetime
 
 from pydantic import EmailStr
 from sqlmodel import SQLModel, Field, BigInteger, Relationship
-from sqlalchemy import Column
+from sqlalchemy import Column, table
 
-from api.schemas import CharacterCreate
+from api.schemas import CharacterCreate, RankStatBase
 
 # -------------------------------------------------#
 #                   MENU                           #
@@ -14,7 +14,8 @@ from api.schemas import CharacterCreate
 #               1.User                             #
 #               2.Character                        #
 #               3.Village                          #
-#               3.Mission                          #
+#               4.Mission                          #
+#               5.Stats                            #
 # -------------------------------------------------#
 
 
@@ -44,7 +45,8 @@ class MissionPlaying(SQLModel, table=True):
     percent_character: int = Field()
     percent_choice: int = Field()
     additionnal_time: int = Field(default=0)
-    last_choice_id: Optional[int] = Field(default=None, foreign_key='choice.id') 
+    last_choice_id: Optional[int] = Field(
+        default=None, foreign_key='choice.id')
     step_id: Optional[int] = Field(default=None, foreign_key="step.id")
     user_id: Optional[int] = Field(default=None, foreign_key="user.id")
 
@@ -60,6 +62,14 @@ class MissionVillage(SQLModel, table=True):
     mission_id: Optional[int] = Field(
         default=None, foreign_key="mission.id", primary_key=True
     )
+
+
+class CharacterMissionStat(SQLModel, table=True):
+    mission_rank_id: Optional[int] = Field(
+        default=None, foreign_key="rank_stat.id", primary_key=True)
+
+    character_id: Optional[int] = Field(
+        default=None, foreign_key="character.id", primary_key=True)
 
 # -------------------------------------------------#
 #                                                  #
@@ -100,6 +110,9 @@ class Character(CharacterCreate, table=True):
 
     mission: "Mission" = Relationship(
         back_populates="characters", link_model=MissionPlaying)
+
+    mission_rank: List["RankStat"] = Relationship(
+        back_populates="character", link_model=CharacterMissionStat)
 
 
 # -------------------------------------------------#
@@ -158,7 +171,8 @@ class Choice(SQLModel, table=True):
     step_to_id: Optional[int] = Field(default=None, foreign_key="step.id")
     step_from_id: Optional[int] = Field(default=None, foreign_key="step.id")
 
-    mission_playing: 'MissionPlaying' = Relationship(back_populates="mast_choice")
+    mission_playing: 'MissionPlaying' = Relationship(
+        back_populates="mast_choice")
     step_to: 'Step' = Relationship(sa_relationship_kwargs={
                                    "foreign_keys": "Choice.step_to_id"})
     step_from: "Step" = Relationship(
@@ -166,7 +180,8 @@ class Choice(SQLModel, table=True):
 
     conditions: List["Condition"] = Relationship(back_populates="choice")
 
-    finalities: Optional[List["Finality"]] = Relationship(back_populates="choice")
+    finalities: Optional[List["Finality"]] = Relationship(
+        back_populates="choice")
 
 
 class Condition(SQLModel, table=True):
@@ -180,13 +195,30 @@ class Condition(SQLModel, table=True):
     choice_id: Optional[int] = Field(default=None, foreign_key="choice.id")
     choice: "Choice" = Relationship(back_populates="conditions")
 
+
 class Finality(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True, index=True)
-    
+
     mission_id: Optional[int] = Field(default=None, foreign_key="mission.id")
-    
+
     description: str = Field()
     value: str = Field()
 
     choice_id: Optional[int] = Field(default=None, foreign_key="choice.id")
     choice: "Choice" = Relationship(back_populates="finalities")
+
+
+# -------------------------------------------------#
+#                                                  #
+#               5.Stats                            #
+#                                                  #
+# -------------------------------------------------#
+
+
+class RankStat(RankStatBase, table=True):
+    __tablename__ = "rank_stat"
+
+    id: Optional[int] = Field(default=None, primary_key=True, index=True)
+
+    character: "Character" = Relationship(
+        back_populates="mission_rank", link_model=CharacterMissionStat)

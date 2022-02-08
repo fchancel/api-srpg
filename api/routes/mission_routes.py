@@ -1,7 +1,7 @@
 from datetime import datetime
 from fastapi import APIRouter, Depends, status, HTTPException, Response
 from sqlmodel import Session
-from api.crud import create_mission_playing, get_character, get_choice_from_step, get_mission
+from api.crud import create_mission_playing, delete_mission_playing_db, get_character, get_choice_from_step, get_mission
 
 from api.open_api_responses import (open_api_response_login, open_api_response_no_content, open_api_response_not_found_character, open_api_response_error_server,
                                     open_api_response_already_exist_mission, open_api_response_not_found_mission)
@@ -131,7 +131,10 @@ def get_mission_result(user: User = Depends(check_if_mission),
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
 
     try:
-        pass
+        delete_mission_playing_db(db, user.mission_playing)
+        # AJOUT STATISTIQUE CHARACTER
+        # AJOUT STATISTIQUE MISSION POUR GARDER UNE TRACE
+        # AJOUT CASH
     except:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
