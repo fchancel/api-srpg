@@ -29,6 +29,10 @@ class EmailValidation(BaseModel):
     email_subject: str
 
 
+class Response204(BaseModel):
+    detail: str
+
+
 class Response400(BaseModel):
     detail: str
 
@@ -175,3 +179,24 @@ class MissionPlayingCreate(SQLModel):
     additionnal_time: int = 0
     step_id: int
     user_id: int
+
+
+class ChoiceResponse(SQLModel):
+    choice_id: int
+    sentence: str
+
+
+class StepResponse(SQLModel):
+    mission_id: int
+    step_id: int
+    description: str
+    character: CharacterBase
+    choices: List[ChoiceResponse]
+
+class FinalResult(SQLModel):
+    mission_id: int
+    description: str
+    value:str
+
+class TimeLeft(SQLModel):
+    time: datetime

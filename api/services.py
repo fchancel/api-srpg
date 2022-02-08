@@ -1,6 +1,8 @@
 
 from datetime import timedelta, datetime
-from random import randint
+from http.client import HTTPException
+from math import floor
+from random import randint, shuffle
 from typing import List, Optional
 import requests
 import json
@@ -14,9 +16,9 @@ from jose import jwt
 
 from config import get_settings, log
 
-from api.schemas import UserCreate, EmailValidation, CharacterCreate
-from api.models import MissionPlaying, User, Character
-from api.crud import create_user, get_choice_from_step, get_missions, get_user, create_character, get_character, edit_character
+from api.schemas import ChoiceResponse, StepResponse, UserCreate, EmailValidation, CharacterCreate
+from api.models import Mission, MissionPlaying, User, Character, Choice, Step
+from api.crud import create_user, get_choice_from_step, get_finality_from_choice, get_mission, get_missions, get_user, create_character, get_character, edit_character
 
 # -------------------------------------------------#
 #                   MENU                           #
@@ -231,15 +233,24 @@ MISSION_RANK_PERCENT = {
 }
 
 
-def check_if_finish_time(begin_time, rank, additionnal_time):
+def check_if_finish_time(begin_time, rank, additionnal_time) -> bool:
     if datetime.now() < (begin_time + timedelta(hours=MISSION_RANK_TIME[rank] + timedelta(minutes=additionnal_time))):
         return False
     return True
 
-def get_end_time(begin_time, rank, additionnal_time):
-    return begin_time + timedelta(hours=MISSION_RANK_TIME[rank] + timedelta(minutes=additionnal_time))
 
-def get_random_mission(db: Session, rank: str, village: str):
+def get_finish_time(begin_time, rank, additionnal_time)-> datetime:
+    return begin_time + timedelta(hours=MISSION_RANK_TIME[rank]) + timedelta(minutes=additionnal_time)
+
+
+def get_time_left(finish_time):
+    if finish_time < datetime.now():
+        return 0
+    else:
+        return finish_time - datetime.now()
+
+
+def get_random_mission(db: Session, rank: str, village: str) -> Mission:
     if village == "Nukenin":
         village = "Errant"
     missions = get_missions(db, rank, village)
@@ -247,8 +258,44 @@ def get_random_mission(db: Session, rank: str, village: str):
     return missions[randint(0, size_max - 1)]
 
 
-def check_if_decision_finish(db: Session, mission_playing: MissionPlaying):
-    choices = get_choice_from_step(db, step_from=mission_playing.step)
-    if not choices:
-        return True
-    return False
+
+def get_percent_final(percent_mission, percent_character, percent_choice)-> int:
+    percent_cumul = percent_character + percent_mission
+    percent = floor((percent_cumul * abs(percent_choice)) // 100)
+    if percent_choice < 0:
+        stat_final = percent_cumul - percent
+    else:
+        stat_final = percent_cumul + percent
+    if stat_final > 100:
+        stat_final = 100
+    elif stat_final < 0:
+        stat_final = 0
+    return floor(stat_final)
+
+
+def win_or_loose(percent) -> str:
+    total_choice = 100
+    lst_result_win = ["win"] * percent
+    lst_result__loose = ["fail"] * (total_choice - percent)
+    result = lst_result_win + lst_result__loose
+    shuffle(result)
+    return result[randint(0, total_choice - 1)]
+
+
+def get_result_step(db: Session, mission_playing: MissionPlaying, mission: Mission):
+    percent_final = get_percent_final(mission.percent_mission, mission_playing.percent_character, mission_playing.percent_choice)
+    result = win_or_loose(percent_final)
+    return get_finality_from_choice(db, mission_playing.last_choice, result)
+
+
+def make_response_step(db: Session, mission_playing: MissionPlaying, choices: List[Choice]) -> StepResponse:
+    choice_lst_responses = []
+    for choice in choices:
+        choice_lst_responses.append(ChoiceResponse(choice_id=choice.id,
+                                                   sentence=choice.sentence))
+    step_response = StepResponse(mission_id=mission_playing.mission_id,
+                                 step_id=mission_playing.step_id,
+                                 character=get_character(
+                                     db, id=mission_playing.character_id),
+                                 choices=choice_lst_responses)
+    return step_response

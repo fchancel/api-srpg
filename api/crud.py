@@ -1,10 +1,9 @@
-from http.client import HTTPException
 from typing import Optional, List
 from pydantic import EmailStr
 
 from sqlmodel import Session, select, BigInteger, text
 
-from api.models import MissionPlaying, Village, User, Character, Mission, Step, Choice, Condition, UserCharacterLink
+from api.models import Finality, MissionPlaying, Village, User, Character, Mission, Step, Choice, Condition, UserCharacterLink
 from api.schemas import UserCreate, CharacterCreate, EnumRank, MissionPlayingCreate
 
 # -------------------------------------------------#
@@ -18,6 +17,8 @@ from api.schemas import UserCreate, CharacterCreate, EnumRank, MissionPlayingCre
 #                   3.2.Step                       #
 #                   3.3.Choice                     #
 #                   3.4.Condition                  #
+#                   3.5.Finality                   #
+#                   3.6.Mission Playing            #
 # -------------------------------------------------#
 
 # -------------------------------------------------#
@@ -224,36 +225,42 @@ def get_choice(db: Session, id: int):
 
 def get_choice_from_step(db: Session, step_from: Optional[Step] = None, step_to: Optional[Step] = None):
     if step_from and step_to:
-        choices: Choice = db.exec(select(Choice).where(Choice.step_to_id == step_to.id, Choice.step_from_id == step_from.id)).all()
+        choices: Choice = db.exec(select(Choice).where(
+            Choice.step_to_id == step_to.id, Choice.step_from_id == step_from.id)).all()
     elif step_from:
-        choices: Choice = db.exec(select(Choice).where(Choice.step_from_id == step_from.id)).all()
+        choices: Choice = db.exec(select(Choice).where(
+            Choice.step_from_id == step_from.id)).all()
     elif step_to:
-        choices: Choice = db.exec(select(Choice).where(Choice.step_to_id == step_to.id)).all()
+        choices: Choice = db.exec(select(Choice).where(
+            Choice.step_to_id == step_to.id)).all()
     if len(choices) == 0:
         return None
     return choices
 
 
-
-def edit_choice(db: Session, choice: Choice, step_from: Optional[Step]=None, step_to: Optional[Step]=None, conditions: Optional[list]=None):
+def edit_choice(db: Session, choice: Choice, step_from: Optional[Step] = None, step_to: Optional[Step] = None, conditions: Optional[list] = None, finalities: Optional[list] = None):
     if step_from:
-        choice.step_from_id=step_from.id
+        choice.step_from_id = step_from.id
     if step_to:
-        choice.step_to_id=step_to.id
+        choice.step_to_id = step_to.id
     if conditions:
         for condition in conditions:
             choice.conditions.append(condition)
+    if finalities:
+        for finality in finalities:
+            choice.finalities.append(finality)
     db.add(choice)
     db.commit()
     db.refresh(choice)
     return choice
+
 
 def get_choices_from_mission(db: Session, mission_id: int):
     return db.exec(select(Choice).where(Choice.mission_id == mission_id)).all()
 
 
 def delete_choices_from_mission(db: Session, mission_id: int):
-    choices=get_choices_from_mission(db, mission_id)
+    choices = get_choices_from_mission(db, mission_id)
     for choice in choices:
         db.delete(choice)
     db.commit()
@@ -265,7 +272,7 @@ def delete_choices_from_mission(db: Session, mission_id: int):
 
 
 def create_condition(db: Session, type: str, value: int, mission_id: int):
-    condition=Condition(type=type, value=value, mission_id=mission_id)
+    condition = Condition(type=type, value=value, mission_id=mission_id)
     db.add(condition)
     db.commit()
     db.refresh(condition)
@@ -276,24 +283,56 @@ def get_condition(db: Session, id: int):
     return db.get(Condition, id)
 
 
-
 def get_conditions_from_mission(db: Session, mission_id: int):
     return db.exec(select(Condition).where(Condition.mission_id == mission_id)).all()
 
 
 def delete_conditions_from_mission(db: Session, mission_id: int):
-    conditions=get_conditions_from_mission(db, mission_id)
+    conditions = get_conditions_from_mission(db, mission_id)
     for condition in conditions:
         db.delete(condition)
     db.commit()
     return
 
 # -------------------------------------------------#
-#               3.5.Condition                      #
+#               3.5.Finality                       #
 # -------------------------------------------------#
 
+
+def create_finality(db: Session, description: str, mission_id: int, value: str):
+    finality = Finality(description=description,
+                        mission_id=mission_id, value=value)
+    db.add(finality)
+    db.commit()
+    db.refresh(finality)
+    return finality
+
+
+def get_finality(db: Session, id: int):
+    return db.get(Finality, id)
+
+def get_finality_from_choice(db: Session, choice: Choice, value: str):
+    return db.exec(select(Finality).where(Finality.choice_id == choice.id, Finality.value == value)).first()
+
+def get_finality_from_mission(db: Session, mission_id: int):
+    return db.exec(select(Finality).where(Finality.mission_id == mission_id)).all()
+
+
+def delete_finality_from_mission(db: Session, mission_id: int):
+    finalities = get_finality_from_mission(db, mission_id)
+    for finality in finalities:
+        db.delete(finality)
+    db.commit()
+    return
+
+
+# -------------------------------------------------#
+#               3.6.Mission Playing                #
+# -------------------------------------------------#
+
+
 def create_mission_playing(db: Session, mission_data: MissionPlayingCreate):
-    mission=MissionPlaying.parse_obj(mission_data)
+    mission = MissionPlaying.parse_obj(mission_data)
     mission.cha
     db.add(mission)
     db.commit()
@@ -301,21 +340,21 @@ def create_mission_playing(db: Session, mission_data: MissionPlayingCreate):
     return mission
 
 
-def get_mission_playing(db: Session, user: Optional[User]=None, character: Optional['Character']=None) -> Mission:
+def get_mission_playing(db: Session, user: Optional[User] = None, character: Optional['Character'] = None) -> Mission:
     if user:
-        mission=db.exec(select(MissionPlaying).where(
+        mission = db.exec(select(MissionPlaying).where(
             MissionPlaying.user == user)).first()
     elif character:
-        mission=db.exec(select(MissionPlaying).where(
+        mission = db.exec(select(MissionPlaying).where(
             Mission.character == character)).first()
     return mission
 
 
-def update_mission_playing(db: Session, mission_playing: MissionPlaying, percent_choice: Optional[int]=None, step: Optional['Step']=None) -> Mission:
+def update_mission_playing(db: Session, mission_playing: MissionPlaying, percent_choice: Optional[int] = None, step: Optional['Step'] = None) -> Mission:
     if percent_choice:
-        mission_playing.percent_choice=percent_choice
+        mission_playing.percent_choice = percent_choice
     if step:
-        mission_playing.step=step
+        mission_playing.step = step
     db.commit()
     db.refresh(mission_playing)
     return mission_playing

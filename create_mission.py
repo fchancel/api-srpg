@@ -6,7 +6,7 @@ from sqlalchemy.ext.serializer import loads, dumps
 from sqlmodel import Session, SQLModel
 
 from api.core.database import engine
-from api.crud import (create_mission, delete_choices_from_mission, delete_conditions_from_mission, delete_mission, delete_steps_from_mission, get_village, edit_mission_village, create_choice, create_step, create_condition,
+from api.crud import (create_finality, create_mission, delete_choices_from_mission, delete_conditions_from_mission, delete_finality_from_mission, delete_mission, delete_steps_from_mission, get_finality, get_village, edit_mission_village, create_choice, create_step, create_condition,
                       edit_choice, get_choice, get_step, get_condition)
 from api.services import MISSION_RANK_PERCENT
 
@@ -43,6 +43,7 @@ if __name__ == "__main__":
     choices = []
     conditions = []
     relations = []
+    finality = []
     villages = []
     with Session(engine) as db:
         try:
@@ -92,6 +93,15 @@ if __name__ == "__main__":
                             "step_db": step_db.id
                         }
                     )
+                elif node['caption'] == "Finality":
+                    finality_db = create_finality(
+                        db, node["properties"]["description"], mission.id, node["properties"]["value"])
+                    finality.append(
+                        {
+                            "finality_data": node,
+                            "finality_db": finality_db.id
+                        }
+                    )
 
             # GET RELATION
             print("STEP 3: Get Relationship")
@@ -123,19 +133,28 @@ if __name__ == "__main__":
                         choice = find_choice(rel['fromId'], choices)
                         choice = edit_choice(db, get_choice(db, choice['choice_db']), conditions=[
                             get_condition(db, node['condition_db'])])
+
+            print("STEP 6: Make relation between Choice and Finality")
+            # MAKE RELATION BETWEEN CHOICE AND FINALITY
+            for node in finality:
+                for rel in relations:
+                    if node['finality_data']['id'] == rel["toId"]:
+                        choice = find_choice(rel['fromId'], choices)
+                        choice = edit_choice(db, get_choice(db, choice['choice_db']), finalities=[
+                            get_finality(db, node['finality_db'])])
+
             print('Succès: Mission créé')
         except Exception as error:
             db.rollback()
 
-    
             print("Erreur : Mission non créé")
             print(f"Mission ID in DB : {mission.id}")
             traceback.print_exc()
 
             print(f"Nettoyage des données en cours...")
             delete_conditions_from_mission(db, mission.id)
+            delete_finality_from_mission(db, mission.id)
             delete_choices_from_mission(db, mission.id)
             delete_steps_from_mission(db, mission.id)
             delete_mission(db, mission.id)
             print(f"Nettoyage des données terminé...")
-

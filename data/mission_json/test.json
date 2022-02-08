@@ -109,12 +109,15 @@
         "x": 230.53232236682038,
         "y": 72.96593484346783
       },
-      "caption": "Step",
+      "caption": "Finality",
       "labels": [],
       "properties": {
-        "description": "Bravo, vous êtes sortie du labyrinthe"
+        "description": "Bravo, vous êtes sortie du labyrinthe",
+        "value": "win"
       },
-      "style": {}
+      "style": {
+        "node-color": "#ab149e"
+      }
     },
     {
       "id": "n4",
@@ -122,12 +125,15 @@
         "x": 212.64218870502518,
         "y": 238.05403330406622
       },
-      "caption": "Step",
+      "caption": "Finality",
       "labels": [],
       "properties": {
-        "description": "Dommage, vous êtes perdu, c'est un echec"
+        "description": "Dommage, vous êtes perdu, c'est un echec",
+        "value": "fail"
       },
-      "style": {}
+      "style": {
+        "node-color": "#ab149e"
+      }
     },
     {
       "id": "n5",
@@ -196,12 +202,15 @@
         "x": 552.7936641357942,
         "y": -55.729672156179845
       },
-      "caption": "Step",
+      "caption": "Finality",
       "labels": [],
       "properties": {
-        "description": "Superbe réussite !"
+        "description": "Superbe réussite !",
+        "value": "win"
       },
-      "style": {}
+      "style": {
+        "node-color": "#ab149e"
+      }
     },
     {
       "id": "n10",
@@ -209,38 +218,47 @@
         "x": 571.0316230955649,
         "y": -154.03406515653217
       },
-      "caption": "Step",
+      "caption": "Finality",
       "labels": [],
       "properties": {
-        "description": "C'est un echec bla bla bla"
+        "description": "C'est un echec bla bla bla",
+        "value": "fail"
       },
-      "style": {}
+      "style": {
+        "node-color": "#ab149e"
+      }
     },
     {
       "id": "n12",
       "position": {
-        "x": 571.0316230955649,
-        "y": -411.8610430462588
+        "x": 552.7936641357942,
+        "y": -442.6512940602175
       },
-      "caption": "Step",
+      "caption": "Finality",
       "labels": [],
       "properties": {
-        "description": "C'est un echec bla bla bla"
+        "description": "C'est un echec bla bla bla",
+        "value": "fail"
       },
-      "style": {}
+      "style": {
+        "node-color": "#ab149e"
+      }
     },
     {
       "id": "n13",
       "position": {
-        "x": 571.0316230955649,
-        "y": -282.9475541013955
+        "x": 584.0118579588711,
+        "y": -323.52872954950635
       },
-      "caption": "Step",
+      "caption": "Finality",
       "labels": [],
       "properties": {
-        "description": "Superbe réussite !"
+        "description": "Superbe réussite !",
+        "value": "win"
       },
-      "style": {}
+      "style": {
+        "node-color": "#ab149e"
+      }
     },
     {
       "id": "n14",

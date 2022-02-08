@@ -25,4 +25,28 @@
 #     # print(characters_user)
 #     delete_connexion_with_character(db, user,data, characters_user)
 
+from datetime import datetime, timedelta
 
+def check_if_finish_time(begin_time, rank, additionnal_time):
+    if datetime.now() < (begin_time + timedelta(hours=3) + timedelta(minutes=additionnal_time)):
+        return False
+    return True
+
+def get_finish_time(begin_time, rank, additionnal_time):
+    return begin_time + timedelta(hours=3) + timedelta(minutes=additionnal_time)
+
+
+def get_time_left(finish_time):
+    if finish_time < datetime.now():
+        return 0
+    else:
+        return finish_time - datetime.now()
+
+
+print(f"datetime now: {datetime.now()}")
+begin_time = datetime.now() - timedelta(hours=3, minutes=51)
+print(f"begin time : {begin_time}")
+finish_time = get_finish_time(begin_time, 3, 60)
+print(f"finish time : {finish_time}")
+time_left = get_time_left(finish_time)
+print(f"left time : {time_left}")

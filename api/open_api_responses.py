@@ -1,5 +1,5 @@
 from typing import Optional
-from api.schemas import Response400, Response401, Response403, Response404, Response409, Response500
+from api.schemas import Response204 ,Response400, Response401, Response403, Response404, Response409, Response500
 
 
 # -------------------------------------------------#
@@ -27,6 +27,18 @@ def open_api_response_error_server(adding_message: Optional[str] = None):
         500: {
             "model": Response500,
             "description": f"Server Error {split}{adding_message if adding_message else ''}"
+        },
+    }
+
+def open_api_response_no_content(adding_message: Optional[str] = None):
+    if adding_message:
+        split = "/ "
+    else:
+        split = ""
+    return {
+        204: {
+            "model": Response204,
+            "description": f"No Content {split}{adding_message if adding_message else ''}"
         },
     }
 

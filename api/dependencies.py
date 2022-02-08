@@ -166,3 +166,6 @@ def check_if_mission(user: User = Depends(GetCurrentUser())) -> User:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Mission Not Found")
     return user
+
+def get_mission(id_mission: int):
+    get_mission(id_mission)
