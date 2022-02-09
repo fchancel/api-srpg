@@ -87,7 +87,7 @@ class GetCurrentUser:
             if payload.get("bot"):
                 data_connexion = payload.get("id")
             else:
-                data_connexion = payload.get("email")
+                data_connexion = payload.get("srpg")
             if data_connexion is None:
                 raise credentials_exception
         except jwt.JWTError as e:
@@ -95,38 +95,19 @@ class GetCurrentUser:
         if payload.get('bot'):
             user = get_user(db, discord_id=data_connexion)
         else:
-            user = get_user(db, email=data_connexion)
+            user = get_user(db, token_srpg=data_connexion)
         if user is None:
             raise credentials_exception
         return user
 
-    def __init__(self, active=True, auto_error=True):
-        self.active = active
-        self.auto_error = auto_error
-
     def __call__(self, token: str = Depends(oauth2_scheme), db: Session = Depends(get_session)) -> User:
         if not token:
-            if self.auto_error:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Not authenticated",
-                    headers={"WWW-Authenticate": "Bearer"},
-                )
-            else:
-                return None
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Not authenticated",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
         user: User = self.decode(token, db)
-        if self.active and not user.is_active:
-            if self.auto_error:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user")
-            else:
-                return None
-        if self.active and not user.email_verified:
-            if self.auto_error:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST, detail="Email not verified")
-            else:
-                return None
         return user
 
 
@@ -166,6 +147,3 @@ def check_if_mission(user: User = Depends(GetCurrentUser())) -> User:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Mission Not Found")
     return user
-
-def get_mission(id_mission: int):
-    get_mission(id_mission)

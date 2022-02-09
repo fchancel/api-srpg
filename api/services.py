@@ -1,6 +1,5 @@
 
 from datetime import timedelta, datetime
-from http.client import HTTPException
 from math import floor
 from random import randint, shuffle
 from typing import List, Optional
@@ -8,17 +7,15 @@ import requests
 import json
 
 from sqlmodel import Session
-from fastapi import Request
 from fastapi_mail import FastMail, MessageSchema
 from pydantic import EmailStr
-from passlib.context import CryptContext
 from jose import jwt
 
 from config import get_settings, log
 
 from api.schemas import ChoiceResponse, StepResponse, UserCreate, EmailValidation, CharacterCreate
 from api.models import Mission, MissionPlaying, User, Character, Choice, Step
-from api.crud import create_user, get_choice_from_step, get_finality_from_choice, get_mission, get_missions, get_user, create_character, get_character, edit_character
+from api.crud import create_rank_stat, create_user, get_choice_from_step, get_finality_from_choice, get_mission, get_missions, get_user, create_character, get_character, edit_character
 
 # -------------------------------------------------#
 #                   MENU                           #
@@ -27,6 +24,7 @@ from api.crud import create_user, get_choice_from_step, get_finality_from_choice
 #               1.User                             #
 #               2.Character                        #
 #               3.Mission                          #
+#               4.Stats                            #
 # -------------------------------------------------#
 
 # -------------------------------------------------#
@@ -34,6 +32,22 @@ from api.crud import create_user, get_choice_from_step, get_finality_from_choice
 #               0.General                          #
 #                                                  #
 # -------------------------------------------------#
+
+MISSION_RANK = ["C", "B", "A", "S"]
+
+MISSION_RANK_TIME = {
+    "C": 3,
+    "B": 6,
+    "A": 8,
+    "S": 10
+}
+
+MISSION_RANK_PERCENT = {
+    "C": 70,
+    "B": 50,
+    "A": 35,
+    "S": 20
+}
 
 
 def adding_data_in_db(db: Session, datas=[], refresh: bool = False) -> None:
@@ -79,47 +93,6 @@ def make_422_response(loc=[], msg="", type_error=""):
 # -------------------------------------------------#
 
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-
-def check_if_user_exist(db: Session, email: EmailStr):
-    user = get_user(db, email=email)
-    if user:
-        return True
-    return False
-
-
-def verify_password(plain_password, hashed_password) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
-
-
-def get_password_hash(password):
-    return pwd_context.hash(password)
-
-
-def save_user(db: Session, user: UserCreate) -> User:
-    user.password = get_password_hash(user.password)
-    user = create_user(db, user)
-    return user
-
-
-def authenticate_user(db: Session, email: str, password: str):
-    user = get_user(db, email=email)
-    if not user:
-        return False
-    if not verify_password(password, user.password):
-        return False
-    return user
-
-
-def check_autorization_authenticate_user(user: User) -> bool:
-    if not user.is_active:
-        return False
-    elif not user.email_verified:
-        return False
-    return True
-
-
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     settings = get_settings()
     to_encode = data.copy()
@@ -132,21 +105,6 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
         to_encode, settings.secret_key, algorithm=settings.algorithm_hash)
     return encoded_jwt
 
-
-def send_validation_email(user: User, request: Request):
-    settings = get_settings()
-    access_token_expires = timedelta(
-        minutes=settings.access_token_expire_minutes_mail)
-    access_token = create_access_token(data={"id": user.id}, expires_delta=access_token_expires
-                                       )
-    link = request.url_for("verify_email", **{'token': str(access_token)})
-    email_body = f"Salut, Utilise le lien ci-dessous pour valider ton adresse email\n{link}"
-    email_subject = 'Valide ton email - SRPG Annexe'
-
-    data = EmailValidation(email_body=email_body,
-                           email_subject=email_subject,
-                           to_email=[user.email])
-    return data
 
 # -------------------------------------------------#
 #                                                  #
@@ -178,14 +136,16 @@ def save_characters(db: Session, user: User, list_character: list(), refresh: bo
     for character in list_character:
         character_in_db = get_character(db, id_srpg=character['id'])
         # If character doesn't exist in the database, add it
-        print(f"ID CHARACTER IS {character['id']}")
         if not character_in_db:
-            character_db_list.append(create_character(db,
-                                                      CharacterCreate(id_srpg=character['id'],
-                                                                      name=character['name'],
-                                                                      url_avatar=character['avatar'],
-                                                                      village=character['village']),
-                                                      user))
+            character_in_db = create_character(db,
+                                               CharacterCreate(id_srpg=character['id'],
+                                                               name=character['name'],
+                                                               url_avatar=character['avatar'],
+                                                               village=character['village']),
+                                               user)
+            character_db_list.append(character_in_db)
+            for rank in MISSION_RANK:
+                create_rank_stat(db, rank, character_in_db)
         # If character already exist in database, update it and add user connexion
         else:
             if not refresh:
@@ -218,20 +178,6 @@ def delete_connexion_with_character(db: Session, user: User, list_character_srpg
 #               3.Mission                          #
 #                                                  #
 # -------------------------------------------------#
-MISSION_RANK_TIME = {
-    "C": 3,
-    "B": 6,
-    "A": 8,
-    "S": 10
-}
-
-MISSION_RANK_PERCENT = {
-    "C": 70,
-    "B": 50,
-    "A": 35,
-    "S": 20
-}
-
 
 def check_if_finish_time(begin_time, rank, additionnal_time) -> bool:
     if datetime.now() < (begin_time + timedelta(hours=MISSION_RANK_TIME[rank] + timedelta(minutes=additionnal_time))):
@@ -239,7 +185,7 @@ def check_if_finish_time(begin_time, rank, additionnal_time) -> bool:
     return True
 
 
-def get_finish_time(begin_time, rank, additionnal_time)-> datetime:
+def get_finish_time(begin_time, rank, additionnal_time) -> datetime:
     return begin_time + timedelta(hours=MISSION_RANK_TIME[rank]) + timedelta(minutes=additionnal_time)
 
 
@@ -258,8 +204,7 @@ def get_random_mission(db: Session, rank: str, village: str) -> Mission:
     return missions[randint(0, size_max - 1)]
 
 
-
-def get_percent_final(percent_mission, percent_character, percent_choice)-> int:
+def get_percent_final(percent_mission, percent_character, percent_choice) -> int:
     percent_cumul = percent_character + percent_mission
     percent = floor((percent_cumul * abs(percent_choice)) // 100)
     if percent_choice < 0:
@@ -283,7 +228,8 @@ def win_or_loose(percent) -> str:
 
 
 def get_result_step(db: Session, mission_playing: MissionPlaying, mission: Mission):
-    percent_final = get_percent_final(mission.percent_mission, mission_playing.percent_character, mission_playing.percent_choice)
+    percent_final = get_percent_final(
+        mission.percent_mission, mission_playing.percent_character, mission_playing.percent_choice)
     result = win_or_loose(percent_final)
     return get_finality_from_choice(db, mission_playing.last_choice, result)
 
@@ -299,3 +245,24 @@ def make_response_step(db: Session, mission_playing: MissionPlaying, choices: Li
                                      db, id=mission_playing.character_id),
                                  choices=choice_lst_responses)
     return step_response
+
+
+def get_choice_value(db: Session, choice: Choice, character: Character):
+    character_stat = get_stat_character_from_srpg(character)
+    condition_ok = True
+    for condition in choice.conditions:
+        if condition.type != "Time":
+            value_character = character_stat[condition.type]['niveau']
+            if value_character < condition.value:
+                condition_ok = False
+    if not condition_ok:
+        return choice.value * -1
+    else:
+        return choice.value
+
+
+def get_additional_time(choice: Choice):
+    for condition in choice.conditions:
+        if condition.type == "Time":
+            return condition.value
+    return 0

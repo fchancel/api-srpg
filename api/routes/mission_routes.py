@@ -1,14 +1,15 @@
 from datetime import datetime
 from fastapi import APIRouter, Depends, status, HTTPException, Response
+from pyparsing import Char
 from sqlmodel import Session
-from api.crud import create_mission_playing, delete_mission_playing_db, get_character, get_choice_from_step, get_mission
+from api.crud import create_mission_playing, create_stat_admin_mission, delete_mission_playing_db, get_character, get_characters_db, get_choice, get_choice_from_step, get_mission, get_step, update_mission_playing, update_rank_stat
 
 from api.open_api_responses import (open_api_response_login, open_api_response_no_content, open_api_response_not_found_character, open_api_response_error_server,
-                                    open_api_response_already_exist_mission, open_api_response_not_found_mission)
-from api.schemas import FinalResult, MissionPlayingCreate, MissionResponse, EnumRank, StepResponse, TimeLeft
+                                    open_api_response_already_exist_mission, open_api_response_not_found_choice, open_api_response_not_found_mission)
+from api.schemas import FinalResult, MissionPlayingCreate, MissionResponse, EnumRank, StatAdminMission, StepResponse, TimeLeft
 from api.dependencies import GetCurrentUser, get_my_character_and_user, get_session, check_if_mission
-from api.models import Finality, Mission, MissionPlaying, User, Character
-from api.services import check_if_finish_time, check_if_mission_finish, get_result_step, get_time_left, get_random_mission, get_stat_character_from_srpg, make_response_step
+from api.models import Choice, Finality, Mission, MissionPlaying, Step, User, Character
+from api.services import MISSION_RANK_PERCENT, check_if_finish_time, check_if_mission_finish, get_additional_time, get_choice_value, get_result_step, get_time_left, get_random_mission, get_stat_character_from_srpg, make_response_step
 from testing import get_finish_time
 
 tags_metadata = [
@@ -126,14 +127,26 @@ def get_mission_result(user: User = Depends(check_if_mission),
                                 detail="Time is not over")
 
         finality: Finality = get_result_step(db, user.mission_playing, mission)
+        character: Character = get_character(
+            db, id=user.mission_playing.character_id)
     except:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
-
     try:
         delete_mission_playing_db(db, user.mission_playing)
-        # AJOUT STATISTIQUE CHARACTER
-        # AJOUT STATISTIQUE MISSION POUR GARDER UNE TRACE
+        if finality.value == 'win':
+            update_rank_stat(db, character, mission.rank, win=1)
+        else:
+            update_rank_stat(db, character, mission.rank, fail=1)
+            create_stat_admin_mission(db, StatAdminMission(
+                mission_name=mission.title,
+                mission_rank=mission.rank,
+                character_name=character.name,
+                percent_mission=MISSION_RANK_PERCENT[mission.rank],
+                percent_character=user.mission_playing.percent_character,
+                percent_choice=user.mission_playing.percent_choice,
+                result=finality.value
+            ))
         # AJOUT CASH
     except:
         raise HTTPException(
@@ -166,24 +179,33 @@ def get_step_in_progress(user: User = Depends(check_if_mission), db: Session = D
 
     return step_response
 
-    # @router.put("/in-progress")
-    # def update_mission(user: User = Depends(check_if_mission),
-    #                 db: Session = Depends(get_session)):
-    #     try:
-    #         mission = get_mission_db(db, user=user)
-    #         mission = update_mission_db(db, mission, )
-    #     except:
-    #         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error Server")
 
-
-# ASSIGNER UNE MISSION ALEATOIRE À UN PERSONNAGE ET JOUEUR
-
-# RÉCUPÉRER LA MISSION EN COURS
-
-# RÉCUPÉRER L'ÉTAPE ACTUEL DE MISSION
-
-# PRENDRE DES DECISIONS
-
-# TERMINER UNE MISSION
-
-# RÉCUPÉRER LA LISTE DE MISSION ACTUELLEMENT JOUÉ EN CE MOMENT
+@router.put('/in-progress/step',
+            summary="Edit which step where are the player during a mission",
+            status_code=status.HTTP_200_OK,
+            responses={
+                **open_api_response_login(),
+                **open_api_response_error_server(),
+                **open_api_response_not_found_mission(),
+                **open_api_response_not_found_choice()
+            })
+def edit_position(id_choice: int, user: User = Depends(check_if_mission), db: Session = Depends(get_session)):
+    choices = get_choice_from_step(db, step_from=user.mission_playing.step)
+    list_id = [value for elem in choices for value in elem.values()]
+    if not id_choice in list_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="")
+    try:
+        character: Character = get_characters_db(
+            db, user.mission_playing.character_id)
+        choice: Choice = get_choice(db, id_choice)
+        next_step: Step = get_step(db, choice.step_to)
+        update_mission_playing(db,
+                               user.mission_playing,
+                               percent_choice=user.mission_playing.percent_choice +
+                               get_choice_value(db, choice, character),
+                               step=next_step,
+                               additional_time=get_additional_time(choice))
+    except:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
+    return

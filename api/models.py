@@ -1,11 +1,11 @@
-from typing import Optional, List, TYPE_CHECKING
+from typing import Optional, List
 from datetime import datetime
 
 from pydantic import EmailStr
 from sqlmodel import SQLModel, Field, BigInteger, Relationship
 from sqlalchemy import Column, table
 
-from api.schemas import CharacterCreate, RankStatBase
+from api.schemas import CharacterCreate, RankStatBase, StatAdminMission
 
 # -------------------------------------------------#
 #                   MENU                           #
@@ -84,10 +84,7 @@ class User(SQLModel, table=True):
     discord_id: Optional[int] = Field(
         sa_column=Column(BigInteger), default=None, index=True)
     token_srpg: Optional[str] = Field(default=None, index=True)
-    email: EmailStr = Field(index=True)
-    password: str
-    email_verified: bool = Field(default=False)
-    is_active: bool = Field(default=True)
+
     role: str = Field(default="member")
 
     characters: "Character" = Relationship(
@@ -202,7 +199,7 @@ class Finality(SQLModel, table=True):
     mission_id: Optional[int] = Field(default=None, foreign_key="mission.id")
 
     description: str = Field()
-    value: str = Field()
+    value: str = Field()  # win or fail
 
     choice_id: Optional[int] = Field(default=None, foreign_key="choice.id")
     choice: "Choice" = Relationship(back_populates="finalities")
@@ -222,3 +219,21 @@ class RankStat(RankStatBase, table=True):
 
     character: "Character" = Relationship(
         back_populates="mission_rank", link_model=CharacterMissionStat)
+
+
+class StatAdminMission(StatAdminMission):
+    id: Optional[int] = Field(default=None, primary_key=True, index=True)
+
+
+class StatAdminMission(SQLModel):
+    mission_name: str
+    mission_rank: str
+    mission_village: str
+
+    character_name: str
+
+    percent_mission: int
+    percent_character: int
+    percent_choice: int
+
+    result: str

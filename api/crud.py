@@ -3,8 +3,8 @@ from pydantic import EmailStr
 
 from sqlmodel import Session, select, BigInteger, text
 
-from api.models import Finality, MissionPlaying, Village, User, Character, Mission, Step, Choice, Condition, UserCharacterLink
-from api.schemas import UserCreate, CharacterCreate, EnumRank, MissionPlayingCreate
+from api.models import Finality, MissionPlaying, RankStat, Village, User, Character, Mission, Step, Choice, Condition, UserCharacterLink
+from api.schemas import StatAdminMission, UserCreate, CharacterCreate, EnumRank, MissionPlayingCreate
 
 # -------------------------------------------------#
 #                   MENU                           #
@@ -19,6 +19,9 @@ from api.schemas import UserCreate, CharacterCreate, EnumRank, MissionPlayingCre
 #                   3.4.Condition                  #
 #                   3.5.Finality                   #
 #                   3.6.Mission Playing            #
+#               4.Stats                            #
+#                   4.1.Rank Stats                 #
+#                   4.2.Mission Admin Stats        #
 # -------------------------------------------------#
 
 # -------------------------------------------------#
@@ -47,30 +50,30 @@ def get_village(db: Session, name: str):
 # -------------------------------------------------#
 
 
-def create_user(db: Session, user: UserCreate):
-    db_user = User.parse_obj(user)
+def create_user_db(db: Session, token_srpg: str, discord_id: Optional[int]):
+    db_user = User(token_srpg=token_srpg)
+    if discord_id:
+        db_user.discord_id = discord_id
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
     return db_user
 
 
-def get_user(db: Session, id: Optional[int] = None, discord_id: Optional[BigInteger] = None, token: Optional[str] = None, email: Optional[EmailStr] = None) -> Optional[User]:
+def get_user(db: Session, id: Optional[int] = None, discord_id: Optional[BigInteger] = None, token_srpg: Optional[str] = None, email: Optional[EmailStr] = None) -> Optional[User]:
     if id:
         user = db.exec(select(User).where(User.id == id)).first()
     elif discord_id:
         user = db.exec(select(User).where(
             User.discord_id == discord_id)).first()
-    elif token:
-        user = db.exec(select(User).where(User.token_srpg == token)).first()
+    elif token_srpg:
+        user = db.exec(select(User).where(User.token_srpg == token_srpg)).first()
     elif email:
         user = db.exec(select(User).where(User.email == email)).first()
     return user
 
 
-def add_connexion_application(db: Session, user: User, token_srpg: Optional[str] = None, discord_id: Optional[int] = None) -> User:
-    if token_srpg:
-        user.token_srpg = token_srpg
+def add_connexion_discord(db: Session, user: User, token_srpg: Optional[str] = None, discord_id: Optional[int] = None) -> User:
     if discord_id:
         discord_id = discord_id
     db.commit()
@@ -350,11 +353,13 @@ def get_mission_playing(db: Session, user: Optional[User] = None, character: Opt
     return mission
 
 
-def update_mission_playing(db: Session, mission_playing: MissionPlaying, percent_choice: Optional[int] = None, step: Optional['Step'] = None) -> Mission:
+def update_mission_playing(db: Session, mission_playing: MissionPlaying, percent_choice: Optional[int] = None, step: Optional['Step'] = None, additional_time: Optional[int] = None) -> Mission:
     if percent_choice:
         mission_playing.percent_choice = percent_choice
     if step:
         mission_playing.step = step
+    if additional_time:
+        mission_playing.additionnal_time += additional_time
     db.commit()
     db.refresh(mission_playing)
     return mission_playing
@@ -376,3 +381,49 @@ def delete_mission_playing_db(db: Session, mission_playing: MissionPlaying) -> N
 #             text(f"begin_time {desc}")).offset(offset).limit(limit)).all()
 #         # missions = db.exec(select(Mission).order_by(Mission.begin_time.desc()).offset(offset).limit(limit)).all()
 #     return missions
+
+
+
+
+# -------------------------------------------------#
+#                                                  #
+#               4.Stats                            #
+#                                                  #
+# -------------------------------------------------#
+
+# -------------------------------------------------#
+#               4.1.Rank Stats                     #
+# -------------------------------------------------#
+
+def create_rank_stat(db: Session, rank:str, character:Character) -> RankStat:
+    rank_stat: RankStat = RankStat(rank=rank, win=0, fail=0, character=character)
+    db.add(rank_stat)
+    db.commit()
+    db.refresh(rank_stat)
+    return rank_stat
+
+def get_rank_stat(db: Session, character:Character, rank:str):
+    return db.exec(select(RankStat).join(Character).where(Character.id == character.id, RankStat.rank == rank)).first()
+
+def update_rank_stat(db:Session, character:Character, rank:str, win:Optional[int]=None, fail:Optional[int] = None):
+    rank_db = get_rank_stat(db, character, rank)
+    if win is not None:
+        rank_db.win += 1
+    if fail is not None:
+        rank_db.fail += 1
+    db.commit()
+    db.refresh(rank_db)
+    return rank_db
+
+
+# -------------------------------------------------#
+#               4.2.Mission Admin Stats            #
+# -------------------------------------------------#
+
+def create_stat_admin_mission(db:Session, data:StatAdminMission):
+    stat = StatAdminMission.parse_obj(data)
+    db.add(stat)
+    db.commit()
+    return stat
+
+

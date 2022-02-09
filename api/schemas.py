@@ -8,8 +8,7 @@ from sqlmodel import SQLModel, Field
 # -------------------------------------------------#
 #                   MENU                           #
 #                                                  #
-#               0.General                          #
-#               1.Validator                        #
+#               1.General                          #
 #               2.Token                            #
 #               3.User                             #
 #               4.Character                        #
@@ -19,16 +18,9 @@ from sqlmodel import SQLModel, Field
 
 # -------------------------------------------------#
 #                                                  #
-#               0.General                          #
+#               1.General                          #
 #                                                  #
 # -------------------------------------------------#
-
-
-class EmailValidation(BaseModel):
-    email_body: str
-    to_email: List[EmailStr]
-    email_subject: str
-
 
 class Response204(BaseModel):
     detail: str
@@ -58,30 +50,6 @@ class Response500(BaseModel):
     detail: str
 
 
-# -------------------------------------------------#
-#                                                  #
-#               1.Validator                        #
-#                                                  #
-# -------------------------------------------------#
-
-
-def password_validator(password):
-    # REGEX PASSWORD : minimum 8 characters, 1 lowercase, 1 uppercase,
-    # 1 digits and can contain @$!%*?.&()[]{}
-    regex_password = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$&+=-_!%*?.()\[\]{}]{8,}"
-    pattern_password = re.compile(regex_password)
-
-    if not pattern_password.match(password):
-        raise ValueError(
-            """value is not a valid password""")
-    return password
-
-
-def passwords_match(password2, values, **kwargs):
-    if 'password' in values and password2 != values['password']:
-        raise ValueError('passwords do not match')
-    return password2
-
 
 # -------------------------------------------------#
 #                                                  #
@@ -105,24 +73,10 @@ class TokenData(BaseModel):
 #                                                  #
 # -------------------------------------------------#
 
-
-class UserCreate(SQLModel):
-    email: EmailStr
-    password: str
-    password2: str
-
-    # Validators
-    _password_validator_password = validator(
-        'password', allow_reuse=True)(password_validator)
-    _password_validator_match_password = validator(
-        'password', 'password2', allow_reuse=True)(passwords_match)
-
-
 class UserResponse(SQLModel):
     id: Optional[int]
     discord_id: Optional[int]
     token_srpg: Optional[str]
-    email: EmailStr
 
 
 # -------------------------------------------------#
@@ -215,3 +169,17 @@ class RankStatBase(SQLModel):
     rank: str
     win: int = Field(default=0)
     fail: int = Field(default=0)
+
+
+class StatAdminMission(SQLModel):
+    mission_name: str
+    mission_rank: str
+    mission_village: str
+
+    character_name:str
+
+    percent_mission: int 
+    percent_character: int
+    percent_choice: int
+
+    result: str
