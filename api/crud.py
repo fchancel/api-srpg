@@ -3,8 +3,8 @@ from pydantic import EmailStr
 
 from sqlmodel import Session, select, BigInteger, text
 
-from api.models import Finality, MissionPlaying, RankStat, Village, User, Character, Mission, Step, Choice, Condition, UserCharacterLink
-from api.schemas import StatAdminMission, UserCreate, CharacterCreate, EnumRank, MissionPlayingCreate
+from api.models import Finality, MissionPlaying, MissionVillage, RankStat, Village, User, Character, Mission, Step, Choice, Condition, UserCharacterLink
+from api.schemas import StatAdminMission, CharacterCreate, EnumRank, MissionPlayingCreate
 
 # -------------------------------------------------#
 #                   MENU                           #
@@ -61,13 +61,15 @@ def create_user_db(db: Session, token_srpg: str, discord_id: Optional[int]):
 
 
 def get_user(db: Session, id: Optional[int] = None, discord_id: Optional[BigInteger] = None, token_srpg: Optional[str] = None, email: Optional[EmailStr] = None) -> Optional[User]:
+    user = None
     if id:
         user = db.exec(select(User).where(User.id == id)).first()
     elif discord_id:
         user = db.exec(select(User).where(
             User.discord_id == discord_id)).first()
     elif token_srpg:
-        user = db.exec(select(User).where(User.token_srpg == token_srpg)).first()
+        user = db.exec(select(User).where(
+            User.token_srpg == token_srpg)).first()
     elif email:
         user = db.exec(select(User).where(User.email == email)).first()
     return user
@@ -88,13 +90,16 @@ def add_connexion_discord(db: Session, user: User, token_srpg: Optional[str] = N
 # -------------------------------------------------#
 
 
-def create_character(db: Session, character: CharacterCreate, user: Optional['User']):
+def create_character(db: Session, character: CharacterCreate, user: Optional['User'], rank_stat: Optional[List['RankStat']]):
     db_character: Character = Character.parse_obj(character)
     db.add(db_character)
     db.commit()
     db.refresh(db_character)
     if user:
         db_character.users.append(user)
+    if rank_stat:
+        for rank in rank_stat:
+            db_character.mission_rank.append(rank)
     db.commit()
     return character
 
@@ -165,12 +170,13 @@ def get_mission(db: Session, id: int):
 
 def get_missions(db: Session, rank: Optional[str] = None, village: Optional[str] = None):
     if rank and village:
-        missions = db.exec(select(Mission).join(Village).where(
-            Mission.rank == rank, Village.name == village)).all()
+        missions = db.exec(select(Mission).join(MissionVillage).join(
+            Village).where(Mission.rank == rank, Village.name == village)).all()
+
     elif rank:
         missions = db.exec(select(Mission).where(Mission.rank == rank)).all()
     elif village:
-        missions = db.exec(select(Mission).join(
+        missions = db.exec(select(Mission).join(MissionVillage).join(
             Village).where(Village.name == village)).all()
     return missions
 
@@ -302,9 +308,11 @@ def delete_conditions_from_mission(db: Session, mission_id: int):
 # -------------------------------------------------#
 
 
-def create_finality(db: Session, description: str, mission_id: int, value: str):
+def create_finality(db: Session, description: str, mission_id: int, value: str, cash: int):
     finality = Finality(description=description,
-                        mission_id=mission_id, value=value)
+                        mission_id=mission_id,
+                        value=value,
+                        cash=cash)
     db.add(finality)
     db.commit()
     db.refresh(finality)
@@ -314,8 +322,10 @@ def create_finality(db: Session, description: str, mission_id: int, value: str):
 def get_finality(db: Session, id: int):
     return db.get(Finality, id)
 
+
 def get_finality_from_choice(db: Session, choice: Choice, value: str):
     return db.exec(select(Finality).where(Finality.choice_id == choice.id, Finality.value == value)).first()
+
 
 def get_finality_from_mission(db: Session, mission_id: int):
     return db.exec(select(Finality).where(Finality.mission_id == mission_id)).all()
@@ -336,7 +346,6 @@ def delete_finality_from_mission(db: Session, mission_id: int):
 
 def create_mission_playing(db: Session, mission_data: MissionPlayingCreate):
     mission = MissionPlaying.parse_obj(mission_data)
-    mission.cha
     db.add(mission)
     db.commit()
     db.refresh(mission)
@@ -383,8 +392,6 @@ def delete_mission_playing_db(db: Session, mission_playing: MissionPlaying) -> N
 #     return missions
 
 
-
-
 # -------------------------------------------------#
 #                                                  #
 #               4.Stats                            #
@@ -395,17 +402,19 @@ def delete_mission_playing_db(db: Session, mission_playing: MissionPlaying) -> N
 #               4.1.Rank Stats                     #
 # -------------------------------------------------#
 
-def create_rank_stat(db: Session, rank:str, character:Character) -> RankStat:
-    rank_stat: RankStat = RankStat(rank=rank, win=0, fail=0, character=character)
+def create_rank_stat(db: Session, rank: str) -> RankStat:
+    rank_stat: RankStat = RankStat(rank=rank, win=0, fail=0)
     db.add(rank_stat)
     db.commit()
     db.refresh(rank_stat)
     return rank_stat
 
-def get_rank_stat(db: Session, character:Character, rank:str):
+
+def get_rank_stat(db: Session, character: Character, rank: str):
     return db.exec(select(RankStat).join(Character).where(Character.id == character.id, RankStat.rank == rank)).first()
 
-def update_rank_stat(db:Session, character:Character, rank:str, win:Optional[int]=None, fail:Optional[int] = None):
+
+def update_rank_stat(db: Session, character: Character, rank: str, win: Optional[int] = None, fail: Optional[int] = None):
     rank_db = get_rank_stat(db, character, rank)
     if win is not None:
         rank_db.win += 1
@@ -420,10 +429,8 @@ def update_rank_stat(db:Session, character:Character, rank:str, win:Optional[int
 #               4.2.Mission Admin Stats            #
 # -------------------------------------------------#
 
-def create_stat_admin_mission(db:Session, data:StatAdminMission):
+def create_stat_admin_mission(db: Session, data: StatAdminMission):
     stat = StatAdminMission.parse_obj(data)
     db.add(stat)
     db.commit()
     return stat
-
-

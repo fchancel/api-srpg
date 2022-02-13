@@ -169,7 +169,7 @@ class Choice(SQLModel, table=True):
     step_from_id: Optional[int] = Field(default=None, foreign_key="step.id")
 
     mission_playing: 'MissionPlaying' = Relationship(
-        back_populates="mast_choice")
+        back_populates="last_choice")
     step_to: 'Step' = Relationship(sa_relationship_kwargs={
                                    "foreign_keys": "Choice.step_to_id"})
     step_from: "Step" = Relationship(
@@ -200,6 +200,7 @@ class Finality(SQLModel, table=True):
 
     description: str = Field()
     value: str = Field()  # win or fail
+    cash: int = Field()
 
     choice_id: Optional[int] = Field(default=None, foreign_key="choice.id")
     choice: "Choice" = Relationship(back_populates="finalities")

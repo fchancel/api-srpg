@@ -1,0 +1,314 @@
+{
+  "style": {
+    "font-family": "sans-serif",
+    "background-color": "#ffffff",
+    "node-color": "#ffffff",
+    "border-width": 2,
+    "border-color": "#000000",
+    "radius": 10,
+    "node-padding": 5,
+    "node-margin": 2,
+    "outside-position": "auto",
+    "node-icon-image": "",
+    "node-background-image": "",
+    "icon-position": "inside",
+    "icon-size": 64,
+    "caption-position": "outside",
+    "caption-max-width": 200,
+    "caption-color": "#000000",
+    "caption-font-size": 10,
+    "caption-font-weight": "normal",
+    "label-position": "outside",
+    "label-display": "pill",
+    "label-color": "#000000",
+    "label-background-color": "#ffffff",
+    "label-border-color": "#000000",
+    "label-border-width": 2,
+    "label-font-size": 10,
+    "label-padding": 1,
+    "label-margin": 4,
+    "directionality": "undirected",
+    "detail-position": "inline",
+    "detail-orientation": "parallel",
+    "arrow-width": 2,
+    "arrow-color": "#000000",
+    "margin-start": 0,
+    "margin-end": 0,
+    "margin-peer": 20,
+    "attachment-start": "normal",
+    "attachment-end": "normal",
+    "relationship-icon-image": "",
+    "type-color": "#000000",
+    "type-background-color": "#ffffff",
+    "type-border-color": "#000000",
+    "type-border-width": 0,
+    "type-font-size": 10,
+    "type-padding": 5,
+    "property-position": "outside",
+    "property-alignment": "colon",
+    "property-color": "#000000",
+    "property-font-size": 10,
+    "property-font-weight": "normal"
+  },
+  "nodes": [
+    {
+      "id": "n0",
+      "position": {
+        "x": -159.5541002086838,
+        "y": -18.57090688507469
+      },
+      "caption": "Step",
+      "labels": [
+        "Mission",
+        "Konoha"
+      ],
+      "properties": {
+        "title": "Test Konoha",
+        "description": "Test",
+        "rank": "C",
+        "cash": "0"
+      },
+      "style": {
+        "label-color": "#808080",
+        "property-position": "inside",
+        "label-position": "outside",
+        "property-alignment": "colon",
+        "caption-position": "outside"
+      }
+    },
+    {
+      "id": "n2",
+      "position": {
+        "x": 14.414468604324869,
+        "y": 155.39766192793394
+      },
+      "caption": "Choice",
+      "labels": [],
+      "properties": {
+        "sentence": "choix 2",
+        "value": "-20"
+      },
+      "style": {
+        "node-color": "#f44e3b",
+        "caption-position": "outside",
+        "property-position": "outside",
+        "property-alignment": "colon"
+      }
+    },
+    {
+      "id": "n33",
+      "position": {
+        "x": 14.414468604324869,
+        "y": -71.47040182168635
+      },
+      "caption": "Choice",
+      "labels": [],
+      "properties": {
+        "sentence": "choix 1",
+        "value": "-20"
+      },
+      "style": {
+        "node-color": "#f44e3b",
+        "caption-position": "outside",
+        "property-position": "outside",
+        "property-alignment": "colon"
+      }
+    },
+    {
+      "id": "n34",
+      "position": {
+        "x": 130.81351740399725,
+        "y": -71.47040182168635
+      },
+      "caption": "Step",
+      "style": {},
+      "labels": [],
+      "properties": {
+        "description": "step 1"
+      }
+    },
+    {
+      "id": "n35",
+      "position": {
+        "x": 130.81351740399725,
+        "y": 88.1946397700267
+      },
+      "caption": "Finality",
+      "style": {},
+      "labels": [],
+      "properties": {
+        "description": "finality 1",
+        "value": "win"
+      }
+    },
+    {
+      "id": "n36",
+      "position": {
+        "x": 81.61749076223214,
+        "y": 271.7967107276063
+      },
+      "caption": "Finality",
+      "style": {},
+      "labels": [],
+      "properties": {
+        "description": "finality 2",
+        "value": "fail"
+      }
+    },
+    {
+      "id": "n37",
+      "position": {
+        "x": 177.03835222508172,
+        "y": -151.53416430328366
+      },
+      "caption": "Choice",
+      "style": {},
+      "labels": [],
+      "properties": {
+        "sentence": "choice 1.1",
+        "value": "10"
+      }
+    },
+    {
+      "id": "n38",
+      "position": {
+        "x": 361.28387413724454,
+        "y": -257.90836597625395
+      },
+      "caption": "Finality",
+      "labels": [],
+      "properties": {
+        "description": "finality 1.1",
+        "value": "win"
+      },
+      "style": {}
+    },
+    {
+      "id": "n39",
+      "position": {
+        "x": 361.28387413724454,
+        "y": -92.83158828231572
+      },
+      "caption": "Finality",
+      "labels": [],
+      "properties": {
+        "description": "finality 1.2",
+        "value": "fail"
+      },
+      "style": {}
+    },
+    {
+      "id": "n40",
+      "position": {
+        "x": -65.64929387727243,
+        "y": -151.53416430328366
+      },
+      "caption": "Condition",
+      "style": {},
+      "labels": [],
+      "properties": {
+        "type": "Ninjutsu",
+        "value": "50"
+      }
+    },
+    {
+      "id": "n41",
+      "position": {
+        "x": -117.33425998265142,
+        "y": 181.99197079919338
+      },
+      "caption": "Condition",
+      "style": {},
+      "labels": [],
+      "properties": {
+        "type": "Time",
+        "value": "60"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "id": "n1",
+      "fromId": "n0",
+      "toId": "n2",
+      "type": "",
+      "properties": {},
+      "style": {
+        "property-position": "inside",
+        "property-alignment": "colon"
+      }
+    },
+    {
+      "id": "n23",
+      "type": "",
+      "style": {},
+      "properties": {},
+      "fromId": "n0",
+      "toId": "n33"
+    },
+    {
+      "id": "n24",
+      "type": "",
+      "style": {},
+      "properties": {},
+      "fromId": "n33",
+      "toId": "n34"
+    },
+    {
+      "id": "n25",
+      "type": "",
+      "style": {},
+      "properties": {},
+      "fromId": "n2",
+      "toId": "n35"
+    },
+    {
+      "id": "n26",
+      "type": "",
+      "style": {},
+      "properties": {},
+      "fromId": "n2",
+      "toId": "n36"
+    },
+    {
+      "id": "n27",
+      "type": "",
+      "style": {},
+      "properties": {},
+      "fromId": "n34",
+      "toId": "n37"
+    },
+    {
+      "id": "n28",
+      "type": "",
+      "style": {},
+      "properties": {},
+      "fromId": "n37",
+      "toId": "n38"
+    },
+    {
+      "id": "n29",
+      "type": "",
+      "style": {},
+      "properties": {},
+      "fromId": "n37",
+      "toId": "n39"
+    },
+    {
+      "id": "n30",
+      "type": "",
+      "style": {},
+      "properties": {},
+      "fromId": "n33",
+      "toId": "n40"
+    },
+    {
+      "id": "n31",
+      "type": "",
+      "style": {},
+      "properties": {},
+      "fromId": "n2",
+      "toId": "n41"
+    }
+  ]
+}

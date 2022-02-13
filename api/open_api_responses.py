@@ -30,20 +30,6 @@ def open_api_response_error_server(adding_message: Optional[str] = None):
         },
     }
 
-
-def open_api_response_no_content(adding_message: Optional[str] = None):
-    if adding_message:
-        split = "/ "
-    else:
-        split = ""
-    return {
-        204: {
-            "model": Response204,
-            "description": f"No Content {split}{adding_message if adding_message else ''}"
-        },
-    }
-
-
 # -------------------------------------------------#
 #                                                  #
 #               1.User                             #

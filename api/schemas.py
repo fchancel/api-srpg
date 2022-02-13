@@ -1,7 +1,7 @@
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
-import re
+from pydantic import AnyHttpUrl
 
 from pydantic import BaseModel, EmailStr, validator
 from sqlmodel import SQLModel, Field
@@ -21,6 +21,7 @@ from sqlmodel import SQLModel, Field
 #               1.General                          #
 #                                                  #
 # -------------------------------------------------#
+
 
 class Response204(BaseModel):
     detail: str
@@ -50,7 +51,6 @@ class Response500(BaseModel):
     detail: str
 
 
-
 # -------------------------------------------------#
 #                                                  #
 #               2.Token                            #
@@ -72,6 +72,11 @@ class TokenData(BaseModel):
 #               3.User                             #
 #                                                  #
 # -------------------------------------------------#
+
+class UserBase(SQLModel):
+    token_srpg: str
+    discord_id: Optional[int]
+
 
 class UserResponse(SQLModel):
     id: Optional[int]
@@ -119,10 +124,14 @@ class MissionResponse(SQLModel):
     rank: str
     village: str
     description: str
+
+
+class MissionPlayingResponse(SQLModel):
     finish_choice: bool = False
     begin_time: datetime
     end_time: datetime
-    character: CharacterBase
+    mission: AnyHttpUrl
+    character: AnyHttpUrl
 
 
 class MissionPlayingCreate(SQLModel):
@@ -142,21 +151,21 @@ class ChoiceResponse(SQLModel):
 
 
 class StepResponse(SQLModel):
-    mission_id: int
-    step_id: int
     description: str
-    character: CharacterBase
     choices: List[ChoiceResponse]
+    mission: AnyHttpUrl
+    character: AnyHttpUrl
 
 
 class FinalResult(SQLModel):
-    mission_id: int
     description: str
     value: str
+    mission: AnyHttpUrl
+    character: AnyHttpUrl
 
 
 class TimeLeft(SQLModel):
-    time: datetime
+    time: timedelta
 
 
 # -------------------------------------------------#
@@ -176,9 +185,9 @@ class StatAdminMission(SQLModel):
     mission_rank: str
     mission_village: str
 
-    character_name:str
+    character_name: str
 
-    percent_mission: int 
+    percent_mission: int
     percent_character: int
     percent_choice: int
 

@@ -1,10 +1,10 @@
-from typing import TYPE_CHECKING
-from fastapi import HTTPException, status, Depends
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import Body, HTTPException, Header, status, Depends, Security
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlmodel import Session
 from jose import jwt
 
-from config import get_settings
+from config import get_settings, Settings
+from tests.conftest import engine_test
 from api.core.database import engine
 
 from api.crud import get_user, get_character
@@ -28,12 +28,21 @@ from api.models import User, Character
 
 
 def get_session():
-    with Session(engine) as session:
-        try:
-            yield session
-        except:
-            session.rollback()
-            raise
+    settings: Settings = get_settings()
+    if settings.is_test():
+        with Session(engine_test) as session:
+            try:
+                yield session
+            except:
+                session.rollback()
+                raise
+    else:
+        with Session(engine) as session:
+            try:
+                yield session
+            except:
+                session.rollback()
+                raise
 
 
 async def pagination_parameters(desc: bool = False, skip: int = 0, limit: int = 10):
@@ -66,49 +75,36 @@ async def pagination_parameters(desc: bool = False, skip: int = 0, limit: int = 
 #                                                  #
 # -------------------------------------------------#
 
-
-oauth2_scheme = OAuth2PasswordBearer(
-    tokenUrl="api/users/token", auto_error=False)
-
 credentials_exception = HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,
     detail="Could not validate credentials",
-    headers={"WWW-Authenticate": "Bearer"},
+    headers={"srpg-token": "Bearer"},
 )
 
+oauth_schema = HTTPBearer()
 
-class GetCurrentUser:
 
-    def decode(self, token: str, db: Session):
+def get_current_user(token: HTTPAuthorizationCredentials = Security(oauth_schema), front: str = Header("website"), db: Session = Depends(get_session)):
+    token = token.credentials
+    if front == 'bot':
         try:
             settings = get_settings()
             payload = jwt.decode(token, settings.secret_key,
                                  algorithms=[settings.algorithm_hash])
-            if payload.get("bot"):
-                data_connexion = payload.get("id")
-            else:
-                data_connexion = payload.get("srpg")
-            if data_connexion is None:
+            discord_id = payload.get("discord-id")
+            if discord_id is None:
                 raise credentials_exception
         except jwt.JWTError as e:
             raise credentials_exception
-        if payload.get('bot'):
-            user = get_user(db, discord_id=data_connexion)
-        else:
-            user = get_user(db, token_srpg=data_connexion)
-        if user is None:
-            raise credentials_exception
-        return user
 
-    def __call__(self, token: str = Depends(oauth2_scheme), db: Session = Depends(get_session)) -> User:
-        if not token:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Not authenticated",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-        user: User = self.decode(token, db)
-        return user
+        user = get_user(db, discord_id=discord_id)
+
+    else:
+        user = get_user(db, token_srpg=token)
+    if user is None:
+        raise credentials_exception
+    return user
+
 
 
 # -------------------------------------------------#
@@ -118,7 +114,7 @@ class GetCurrentUser:
 # -------------------------------------------------#
 
 
-def get_my_character_and_user(character_name: str, db: Session = Depends(get_session), user: User = Depends(GetCurrentUser())) -> Character:
+def get_my_character_and_user(character_name: str = Body(...), db: Session = Depends(get_session), user: User = Depends(get_current_user)) -> Character:
     try:
         character: Character = get_character(db, name=character_name)
     except:
@@ -142,7 +138,7 @@ def get_my_character_and_user(character_name: str, db: Session = Depends(get_ses
 #                                                  #
 # -------------------------------------------------#
 
-def check_if_mission(user: User = Depends(GetCurrentUser())) -> User:
+def check_if_mission(user: User = Depends(get_current_user)) -> User:
     if not user.mission_playing:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Mission Not Found")

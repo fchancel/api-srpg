@@ -13,9 +13,9 @@ from jose import jwt
 
 from config import get_settings, log
 
-from api.schemas import ChoiceResponse, StepResponse, UserCreate, EmailValidation, CharacterCreate
-from api.models import Mission, MissionPlaying, User, Character, Choice, Step
-from api.crud import create_rank_stat, create_user, get_choice_from_step, get_finality_from_choice, get_mission, get_missions, get_user, create_character, get_character, edit_character
+from api.schemas import ChoiceResponse, StepResponse, CharacterCreate
+from api.models import Mission, MissionPlaying, User, Character, Choice
+from api.crud import create_rank_stat, get_finality_from_choice, get_missions, create_character, get_character, edit_character
 
 # -------------------------------------------------#
 #                   MENU                           #
@@ -86,6 +86,10 @@ def make_422_response(loc=[], msg="", type_error=""):
         'type': type_error
     }
 
+
+def make_url_endpoint(theme: str, id: int):
+    return f"{get_settings().app_url}api/{theme}/{id}"
+
 # -------------------------------------------------#
 #                                                  #
 #               1.User                             #
@@ -137,15 +141,17 @@ def save_characters(db: Session, user: User, list_character: list(), refresh: bo
         character_in_db = get_character(db, id_srpg=character['id'])
         # If character doesn't exist in the database, add it
         if not character_in_db:
+            rank_stat_lst = []
+            for rank in MISSION_RANK:
+                rank_stat_lst.append(create_rank_stat(db, rank))
             character_in_db = create_character(db,
                                                CharacterCreate(id_srpg=character['id'],
                                                                name=character['name'],
                                                                url_avatar=character['avatar'],
                                                                village=character['village']),
-                                               user)
+                                               user, rank_stat_lst)
             character_db_list.append(character_in_db)
-            for rank in MISSION_RANK:
-                create_rank_stat(db, rank, character_in_db)
+
         # If character already exist in database, update it and add user connexion
         else:
             if not refresh:
@@ -167,7 +173,6 @@ def delete_connexion_with_character(db: Session, user: User, list_character_srpg
                           for value in elem.values()]
     for character in list_character_db:
         if not character.name in list_of_all_values:
-            print(f"remove {character.name}")
             character.users.remove(user)
     db.commit()
     return
@@ -239,11 +244,12 @@ def make_response_step(db: Session, mission_playing: MissionPlaying, choices: Li
     for choice in choices:
         choice_lst_responses.append(ChoiceResponse(choice_id=choice.id,
                                                    sentence=choice.sentence))
-    step_response = StepResponse(mission_id=mission_playing.mission_id,
-                                 step_id=mission_playing.step_id,
-                                 character=get_character(
-                                     db, id=mission_playing.character_id),
-                                 choices=choice_lst_responses)
+    step_response = StepResponse(choices=choice_lst_responses,
+                                 mission=make_url_endpoint(
+                                     'games/missions', mission_playing.mission_id),
+                                 character=make_url_endpoint(
+                                     'characters', mission_playing.character_id)
+                                 )
     return step_response
 
 

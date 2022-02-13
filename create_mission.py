@@ -9,6 +9,7 @@ from api.core.database import engine
 from api.crud import (create_finality, create_mission, delete_choices_from_mission, delete_conditions_from_mission, delete_finality_from_mission, delete_mission, delete_steps_from_mission, get_finality, get_village, edit_mission_village, create_choice, create_step, create_condition,
                       edit_choice, get_choice, get_step, get_condition)
 from api.services import MISSION_RANK_PERCENT
+from tests.conftest import engine_test
 
 
 def find_choice(id: str, choice: list):
@@ -29,12 +30,23 @@ def find_condition(id: str, condition: list):
             return node
 
 
-if __name__ == "__main__":
-
-    SQLModel.metadata.create_all(engine)
-    file_name = "test.json"
-
-    file = f"{os.getcwd()}/data/mission_json/{file_name}"
+def generate_mission_script(test: bool = False,recursive=True, echo=True):
+    if test:
+        #! NOT CHANGE HERE
+        if recursive:
+            generate_mission_script(True, False, echo)
+            file_name = "test_konoha.json"
+            file = f"{os.getcwd()}/data/mission_json/{file_name}"
+            engine =  engine_test
+        else:
+            file_name = "test_kumo.json"
+            file = f"{os.getcwd()}/data/mission_json/{file_name}"
+            engine =  engine_test
+        #! NOT CHANGE HERE
+    else:
+        # EDIT HERE FOR CHANGE MISSION IN SCRIPT
+        file_name = "test.json"
+        file = f"{os.getcwd()}/data/mission_json/{file_name}"
 
     with open(file) as json_data:
         data = json.load(json_data)
@@ -48,7 +60,8 @@ if __name__ == "__main__":
     with Session(engine) as db:
         try:
             # CREATE MISSION
-            print("STEP 1: Create Mission")
+            if echo:
+                print("STEP 1: Create Mission")
             for node in data['nodes']:
                 if "Mission" in node['labels']:
                     mission = create_mission(db, node["properties"]["rank"].upper(),
@@ -64,7 +77,8 @@ if __name__ == "__main__":
                 mission = edit_mission_village(db, mission, villages)
 
             # CREATE CHOICE, STEP AND CONDITION
-            print("STEP 2: Create Choice, Step and Condition")
+            if echo:
+                print("STEP 2: Create Choice, Step and Condition")
             for node in data['nodes']:
                 if node['caption'] == "Choice":
                     choice_db = create_choice(
@@ -94,8 +108,12 @@ if __name__ == "__main__":
                         }
                     )
                 elif node['caption'] == "Finality":
+                    if 'cash' in node['properties']:
+                        cash = node['properties']['cash']
+                    else:
+                        cash = 0
                     finality_db = create_finality(
-                        db, node["properties"]["description"], mission.id, node["properties"]["value"])
+                        db, node["properties"]["description"], mission.id, node["properties"]["value"], cash)
                     finality.append(
                         {
                             "finality_data": node,
@@ -104,11 +122,13 @@ if __name__ == "__main__":
                     )
 
             # GET RELATION
-            print("STEP 3: Get Relationship")
+            if echo:
+                print("STEP 3: Get Relationship")
             for rel in data["relationships"]:
                 relations.append(rel)
 
-            print("STEP 4: Make relation between Choice and Step")
+            if echo:
+                print("STEP 4: Make relation between Choice and Step")
             # MAKE RELATION BETWEEN CHOICE AND STEP
             for node in steps:
                 for rel in relations:
@@ -124,8 +144,8 @@ if __name__ == "__main__":
                                              get_choice(
                                                  db, choice['choice_db']),
                                              step_to=get_step(db, node['step_db']))
-
-            print("STEP 5: Make relation between Choice and Condition")
+            if echo:    
+                print("STEP 5: Make relation between Choice and Condition")
             # MAKE RELATION BETWEEN CHOICE AND CONDITION
             for node in conditions:
                 for rel in relations:
@@ -133,8 +153,8 @@ if __name__ == "__main__":
                         choice = find_choice(rel['fromId'], choices)
                         choice = edit_choice(db, get_choice(db, choice['choice_db']), conditions=[
                             get_condition(db, node['condition_db'])])
-
-            print("STEP 6: Make relation between Choice and Finality")
+            if echo:
+                print("STEP 6: Make relation between Choice and Finality")
             # MAKE RELATION BETWEEN CHOICE AND FINALITY
             for node in finality:
                 for rel in relations:
@@ -142,8 +162,8 @@ if __name__ == "__main__":
                         choice = find_choice(rel['fromId'], choices)
                         choice = edit_choice(db, get_choice(db, choice['choice_db']), finalities=[
                             get_finality(db, node['finality_db'])])
-
-            print('Succès: Mission créé')
+            if echo:
+                print('Succès: Mission créé')
         except Exception as error:
             db.rollback()
 
@@ -158,3 +178,8 @@ if __name__ == "__main__":
             delete_steps_from_mission(db, mission.id)
             delete_mission(db, mission.id)
             print(f"Nettoyage des données terminé...")
+
+
+if __name__ == "__main__":
+
+    generate_mission_script()

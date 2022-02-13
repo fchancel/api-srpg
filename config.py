@@ -15,28 +15,22 @@ class Settings(BaseSettings):
 
     # ENVIRONMENT
     environment: str = 'dev'
-    testing: bool = False
+    test: bool = True
     base_dir = os.path.dirname(os.path.abspath(__file__))
+    app_url = 'http://localhost:8000/'
+
 
     def is_dev(self):
         return self.environment == 'dev'
+
+    def is_test(self):
+        return self.test
 
     # FASTAPI
     app_title: str = "SRPG API"
     app_description: str = "An Crazy API for SRPG"
     documentation_url: str = "/docs"
 
-    # EMAIL
-    mail_conf = ConnectionConfig(
-        MAIL_USERNAME="58f018b335e0ac",
-        MAIL_PASSWORD="8491e1dbd5e67b",
-        MAIL_FROM="no-reply@tripeerz.com",
-        MAIL_PORT=2525,
-        MAIL_SERVER="smtp.mailtrap.io",
-        MAIL_TLS=True,
-        MAIL_SSL=False,
-        USE_CREDENTIALS=True
-    )
 
     # TOKEN
     secret_key: str = '2e816a6e37893d60b91cc8e4c6a4ce3805a875cd20407827972545c7af98fea7'
