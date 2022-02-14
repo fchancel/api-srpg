@@ -14,7 +14,7 @@ from jose import jwt
 from config import get_settings, log
 
 from api.schemas import ChoiceResponse, StepResponse, CharacterCreate
-from api.models import Mission, MissionPlaying, User, Character, Choice
+from api.models import Mission, MissionPlaying, Step, User, Character, Choice
 from api.crud import create_rank_stat, get_finality_from_choice, get_missions, create_character, get_character, edit_character
 
 # -------------------------------------------------#
@@ -239,12 +239,14 @@ def get_result_step(db: Session, mission_playing: MissionPlaying, mission: Missi
     return get_finality_from_choice(db, mission_playing.last_choice, result)
 
 
-def make_response_step(db: Session, mission_playing: MissionPlaying, choices: List[Choice]) -> StepResponse:
+def make_response_step(db: Session, mission_playing: MissionPlaying, step: Step, choices: List[Choice]) -> StepResponse:
     choice_lst_responses = []
-    for choice in choices:
-        choice_lst_responses.append(ChoiceResponse(choice_id=choice.id,
-                                                   sentence=choice.sentence))
+    if choices:
+        for choice in choices:
+            choice_lst_responses.append(ChoiceResponse(choice_id=choice.id,
+                                                       sentence=choice.sentence))
     step_response = StepResponse(choices=choice_lst_responses,
+                                 description=step.description,
                                  mission=make_url_endpoint(
                                      'games/missions', mission_playing.mission_id),
                                  character=make_url_endpoint(
@@ -258,7 +260,7 @@ def get_choice_value(db: Session, choice: Choice, character: Character):
     condition_ok = True
     for condition in choice.conditions:
         if condition.type != "Time":
-            value_character = character_stat[condition.type]['niveau']
+            value_character = character_stat['details'][condition.type]['niveau']
             if value_character < condition.value:
                 condition_ok = False
     if not condition_ok:

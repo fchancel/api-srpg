@@ -2,7 +2,7 @@ from datetime import datetime
 import traceback
 from fastapi import APIRouter, Body, Depends, status, HTTPException, Response
 from sqlmodel import Session
-from api.crud import create_mission_playing, create_stat_admin_mission, delete_mission_playing_db, get_character, get_characters_db, get_choice, get_choice_from_step, get_mission, get_mission_playing, get_step, update_mission_playing, update_rank_stat
+from api.crud import create_mission_playing, create_stat_admin_mission, delete_mission_playing_db, get_character, get_characters_db, get_choice, get_choice_from_step, get_first_step, get_mission, get_mission_playing, get_step, update_mission_playing, update_rank_stat
 
 from api.open_api_responses import (open_api_response_login, open_api_response_not_found_character, open_api_response_error_server,
                                     open_api_response_already_exist_mission, open_api_response_not_found_choice, open_api_response_not_found_mission)
@@ -44,8 +44,8 @@ def start_game(rank: EnumRank = Body(...),
             mission_id=mission_db.id, character_id=character.id, begin_time=datetime.now(),
             percent_character=get_stat_character_from_srpg(character)[
                 'total'],
-            step_id=mission_db.id, user_id=user.id))
-    except Exception as err:
+            step_id=get_first_step(db).id, user_id=user.id))
+    except:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
 
@@ -106,7 +106,6 @@ def get_game_time_left(user: User = Depends(check_if_mission), db: Session = Dep
     except:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
-    print(type(get_time_left(get_finish_time(mission_playing.begin_time, mission.rank, mission_playing.additionnal_time))))
 
     return TimeLeft(time=get_time_left(get_finish_time(mission_playing.begin_time, mission.rank, mission_playing.additionnal_time)))
 
@@ -180,15 +179,17 @@ def get_game_result(user: User = Depends(check_if_mission),
             })
 def get_step_game_in_progress(user: User = Depends(check_if_mission), db: Session = Depends(get_session)):
     try:
-        choices = get_choice_from_step(db, step_from=user.mission_playing.step)
+        mission_playing: MissionPlaying = get_mission_playing(db, user=user)
+        choices = get_choice_from_step(db, step_from=mission_playing.step)
+        step = get_step(db, mission_playing.step_id)
     except:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
 
-    if len(choices) == 0:
+    if not choices:
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-    step_response = make_response_step(db, user.mission_playing, choices)
+    step_response = make_response_step(db, mission_playing, step, choices)
 
     return step_response
 
@@ -203,22 +204,32 @@ def get_step_game_in_progress(user: User = Depends(check_if_mission), db: Sessio
                   **open_api_response_not_found_choice()
               })
 def edit_position(id_choice: int, user: User = Depends(check_if_mission), db: Session = Depends(get_session)):
-    choices = get_choice_from_step(db, step_from=user.mission_playing.step)
-    list_id = [value for elem in choices for value in elem.values()]
+    try:
+        mission_playing: MissionPlaying = get_mission_playing(db, user=user)
+        choices = get_choice_from_step(db, step_from=mission_playing.step)
+    except:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
+
+    list_id = [value.id for value in choices]
+
     if not id_choice in list_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="")
     try:
-        character: Character = get_characters_db(
-            db, user.mission_playing.character_id)
+        character: Character = get_character(
+            db, mission_playing.character_id)
         choice: Choice = get_choice(db, id_choice)
-        next_step: Step = get_step(db, choice.step_to)
-        update_mission_playing(db,
-                               user.mission_playing,
-                               percent_choice=user.mission_playing.percent_choice +
+        print(choice)
+        next_step: Step = get_step(db, choice.step_to_id)
+        mission_playing = update_mission_playing(db,
+                               mission_playing,
+                               percent_choice=mission_playing.percent_choice +
                                get_choice_value(db, choice, character),
                                step=next_step,
                                additional_time=get_additional_time(choice))
-    except:
+        
+    except Exception as e:
+        traceback.print_exc()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
     return

@@ -192,8 +192,9 @@ def delete_mission(db: Session, id: int):
 # -------------------------------------------------#
 
 
-def create_step(db: Session, description: str, mission_id: int):
-    step = Step(description=description, mission_id=mission_id)
+def create_step(db: Session, description: str, mission_id: int, first_step: bool):
+    step = Step(description=description,
+                mission_id=mission_id, first_step=first_step)
     db.add(step)
     db.commit()
     db.refresh(step)
@@ -202,6 +203,9 @@ def create_step(db: Session, description: str, mission_id: int):
 
 def get_step(db: Session, id: int):
     return db.get(Step, id)
+
+def get_first_step(db:Session):
+    return db.exec(select(Step).where(Step.first_step == True)).first()
 
 
 def get_steps_from_mission(db: Session, mission_id: int):
@@ -233,6 +237,7 @@ def get_choice(db: Session, id: int):
 
 
 def get_choice_from_step(db: Session, step_from: Optional[Step] = None, step_to: Optional[Step] = None):
+    choices=[]
     if step_from and step_to:
         choices: Choice = db.exec(select(Choice).where(
             Choice.step_to_id == step_to.id, Choice.step_from_id == step_from.id)).all()
@@ -363,10 +368,9 @@ def get_mission_playing(db: Session, user: Optional[User] = None, character: Opt
 
 
 def update_mission_playing(db: Session, mission_playing: MissionPlaying, percent_choice: Optional[int] = None, step: Optional['Step'] = None, additional_time: Optional[int] = None) -> Mission:
+    mission_playing.step = step
     if percent_choice:
         mission_playing.percent_choice = percent_choice
-    if step:
-        mission_playing.step = step
     if additional_time:
         mission_playing.additionnal_time += additional_time
     db.commit()

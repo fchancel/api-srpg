@@ -153,6 +153,7 @@ class Step(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True, index=True)
 
     description: str = Field()
+    first_step: bool = Field(default=False)
     mission_id: Optional[int] = Field(default=None, foreign_key="mission.id")
 
     mission_playing: 'MissionPlaying' = Relationship(back_populates="step")

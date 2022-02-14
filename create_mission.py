@@ -30,18 +30,18 @@ def find_condition(id: str, condition: list):
             return node
 
 
-def generate_mission_script(test: bool = False,recursive=True, echo=True):
+def generate_mission_script(test: bool = False, recursive=True, echo=True):
     if test:
         #! NOT CHANGE HERE
         if recursive:
             generate_mission_script(True, False, echo)
             file_name = "test_konoha.json"
             file = f"{os.getcwd()}/data/mission_json/{file_name}"
-            engine =  engine_test
+            engine = engine_test
         else:
             file_name = "test_kumo.json"
             file = f"{os.getcwd()}/data/mission_json/{file_name}"
-            engine =  engine_test
+            engine = engine_test
         #! NOT CHANGE HERE
     else:
         # EDIT HERE FOR CHANGE MISSION IN SCRIPT
@@ -99,8 +99,12 @@ def generate_mission_script(test: bool = False,recursive=True, echo=True):
                         }
                     )
                 elif node['caption'] == "Step":
+                    if "Mission" in node['labels']:
+                        first_step = True
+                    else:
+                        first_step = False
                     step_db = create_step(
-                        db, node["properties"]["description"], mission.id)
+                        db, node["properties"]["description"], mission.id, first_step)
                     steps.append(
                         {
                             "step_data": node,
@@ -144,7 +148,7 @@ def generate_mission_script(test: bool = False,recursive=True, echo=True):
                                              get_choice(
                                                  db, choice['choice_db']),
                                              step_to=get_step(db, node['step_db']))
-            if echo:    
+            if echo:
                 print("STEP 5: Make relation between Choice and Condition")
             # MAKE RELATION BETWEEN CHOICE AND CONDITION
             for node in conditions:
