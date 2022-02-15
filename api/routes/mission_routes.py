@@ -122,7 +122,7 @@ def get_game_time_left(user: User = Depends(check_if_mission), db: Session = Dep
 def get_game_result(user: User = Depends(check_if_mission),
                     db: Session = Depends(get_session)):
     try:
-        mission_playing = get_mission_playing(db, user=user)
+        mission_playing: MissionPlaying = get_mission_playing(db, user=user)
     except:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")

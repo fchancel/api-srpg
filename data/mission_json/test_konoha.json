@@ -105,7 +105,7 @@
       "labels": [],
       "properties": {
         "sentence": "choix 1",
-        "value": "-20"
+        "value": "20"
       },
       "style": {
         "node-color": "#f44e3b",
@@ -208,7 +208,7 @@
       "labels": [],
       "properties": {
         "type": "Ninjutsu",
-        "value": "50"
+        "value": "5"
       }
     },
     {
