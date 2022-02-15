@@ -180,7 +180,7 @@ class RankStatBase(SQLModel):
     fail: int = Field(default=0)
 
 
-class StatAdminMission(SQLModel):
+class StatAdminMissionBase(SQLModel):
     mission_name: str
     mission_rank: str
     mission_village: str

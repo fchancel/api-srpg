@@ -3,8 +3,8 @@ from pydantic import EmailStr
 
 from sqlmodel import Session, select, BigInteger, text
 
-from api.models import Finality, MissionPlaying, MissionVillage, RankStat, Village, User, Character, Mission, Step, Choice, Condition, UserCharacterLink
-from api.schemas import StatAdminMission, CharacterCreate, EnumRank, MissionPlayingCreate
+from api.models import Finality, MissionPlaying, MissionVillage, RankStat, Village, User, Character, Mission, Step, Choice, Condition, UserCharacterLink, StatAdminMission
+from api.schemas import StatAdminMissionBase, CharacterCreate, EnumRank, MissionPlayingCreate
 
 # -------------------------------------------------#
 #                   MENU                           #
@@ -367,12 +367,14 @@ def get_mission_playing(db: Session, user: Optional[User] = None, character: Opt
     return mission
 
 
-def update_mission_playing(db: Session, mission_playing: MissionPlaying, percent_choice: Optional[int] = None, step: Optional['Step'] = None, additional_time: Optional[int] = None) -> Mission:
+def update_mission_playing(db: Session, mission_playing: MissionPlaying, percent_choice: Optional[int] = None, step: Optional['Step'] = None, additional_time: Optional[int] = None, last_choice: Optional['Choice'] = None) -> Mission:
     mission_playing.step = step
     if percent_choice:
         mission_playing.percent_choice = percent_choice
     if additional_time:
         mission_playing.additionnal_time += additional_time
+    if last_choice:
+        mission_playing.last_choice_id = last_choice.id
     db.commit()
     db.refresh(mission_playing)
     return mission_playing
@@ -415,7 +417,7 @@ def create_rank_stat(db: Session, rank: str) -> RankStat:
 
 
 def get_rank_stat(db: Session, character: Character, rank: str):
-    return db.exec(select(RankStat).join(Character).where(Character.id == character.id, RankStat.rank == rank)).first()
+    return db.exec(select(RankStat).where(Character.id == character.id, RankStat.rank == rank)).first() 
 
 
 def update_rank_stat(db: Session, character: Character, rank: str, win: Optional[int] = None, fail: Optional[int] = None):
@@ -433,7 +435,7 @@ def update_rank_stat(db: Session, character: Character, rank: str, win: Optional
 #               4.2.Mission Admin Stats            #
 # -------------------------------------------------#
 
-def create_stat_admin_mission(db: Session, data: StatAdminMission):
+def create_stat_admin_mission(db: Session, data: StatAdminMissionBase):
     stat = StatAdminMission.parse_obj(data)
     db.add(stat)
     db.commit()

@@ -6,7 +6,7 @@ from api.crud import create_mission_playing, create_stat_admin_mission, delete_m
 
 from api.open_api_responses import (open_api_response_login, open_api_response_not_found_character, open_api_response_error_server,
                                     open_api_response_already_exist_mission, open_api_response_not_found_choice, open_api_response_not_found_mission)
-from api.schemas import FinalResult, MissionPlayingCreate, MissionPlayingResponse, MissionResponse, EnumRank, StatAdminMission, StepResponse, TimeLeft
+from api.schemas import FinalResult, MissionPlayingCreate, MissionPlayingResponse, MissionResponse, EnumRank, StatAdminMissionBase, StepResponse, TimeLeft
 from api.dependencies import get_my_character_and_user, get_session, check_if_mission
 from api.models import Choice, Finality, Mission, MissionPlaying, Step, User, Character
 from api.services import MISSION_RANK_PERCENT, get_finish_time, check_if_finish_time,  get_additional_time, get_choice_value, get_result_step, get_time_left, get_random_mission, get_stat_character_from_srpg, make_response_step, make_url_endpoint
@@ -131,15 +131,18 @@ def get_game_result(user: User = Depends(check_if_mission),
             status_code=status.HTTP_403_FORBIDDEN, detail="You need take all choice")
     try:
         mission: Mission = get_mission(db, mission_playing.mission_id)
+    except:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
 
-        if not check_if_finish_time(mission_playing.begin_time, mission.rank, mission_playing.additionnal_time):
+    if not check_if_finish_time(mission_playing.begin_time, mission.rank, mission_playing.additionnal_time):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                                 detail="Time is not over")
-
+    try:
         finality: Finality = get_result_step(db, mission_playing, mission)
         character: Character = get_character(
             db, id=mission_playing.character_id)
-    except:
+    except :
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
     try:
@@ -148,9 +151,10 @@ def get_game_result(user: User = Depends(check_if_mission),
             update_rank_stat(db, character, mission.rank, win=1)
         else:
             update_rank_stat(db, character, mission.rank, fail=1)
-            create_stat_admin_mission(db, StatAdminMission(
+        create_stat_admin_mission(db, StatAdminMissionBase(
                 mission_name=mission.title,
                 mission_rank=mission.rank,
+                mission_village=character.village,
                 character_name=character.name,
                 percent_mission=MISSION_RANK_PERCENT[mission.rank],
                 percent_character=mission_playing.percent_character,
@@ -158,7 +162,8 @@ def get_game_result(user: User = Depends(check_if_mission),
                 result=finality.value
             ))
         # AJOUT CASH
-    except:
+        finality: Finality = get_result_step(db, mission_playing, mission)
+    except :
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
 
@@ -219,17 +224,18 @@ def edit_position(id_choice: int, user: User = Depends(check_if_mission), db: Se
         character: Character = get_character(
             db, mission_playing.character_id)
         choice: Choice = get_choice(db, id_choice)
-        print(choice)
         next_step: Step = get_step(db, choice.step_to_id)
         mission_playing = update_mission_playing(db,
-                               mission_playing,
-                               percent_choice=mission_playing.percent_choice +
-                               get_choice_value(db, choice, character),
-                               step=next_step,
-                               additional_time=get_additional_time(choice))
-        
-    except Exception as e:
-        traceback.print_exc()
+                                                 mission_playing,
+                                                 percent_choice=mission_playing.percent_choice +
+                                                 get_choice_value(
+                                                     db, choice, character),
+                                                 step=next_step,
+                                                 additional_time=get_additional_time(
+                                                     choice),
+                                                 last_choice=choice)
+
+    except:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
     return

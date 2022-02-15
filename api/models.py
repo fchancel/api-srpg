@@ -5,7 +5,7 @@ from pydantic import EmailStr
 from sqlmodel import SQLModel, Field, BigInteger, Relationship
 from sqlalchemy import Column, table
 
-from api.schemas import CharacterCreate, RankStatBase, StatAdminMission
+from api.schemas import CharacterCreate, RankStatBase, StatAdminMissionBase
 
 # -------------------------------------------------#
 #                   MENU                           #
@@ -223,19 +223,5 @@ class RankStat(RankStatBase, table=True):
         back_populates="mission_rank", link_model=CharacterMissionStat)
 
 
-class StatAdminMission(StatAdminMission):
+class StatAdminMission(StatAdminMissionBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True, index=True)
-
-
-class StatAdminMission(SQLModel):
-    mission_name: str
-    mission_rank: str
-    mission_village: str
-
-    character_name: str
-
-    percent_mission: int
-    percent_character: int
-    percent_choice: int
-
-    result: str

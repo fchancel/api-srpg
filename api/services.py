@@ -185,7 +185,7 @@ def delete_connexion_with_character(db: Session, user: User, list_character_srpg
 # -------------------------------------------------#
 
 def check_if_finish_time(begin_time, rank, additionnal_time) -> bool:
-    if datetime.now() < (begin_time + timedelta(hours=MISSION_RANK_TIME[rank] + timedelta(minutes=additionnal_time))):
+    if datetime.now() < (begin_time + timedelta(hours=MISSION_RANK_TIME[rank]) + timedelta(minutes=additionnal_time)):
         return False
     return True
 
