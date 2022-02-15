@@ -6,7 +6,7 @@ from api.crud import create_mission_playing, create_stat_admin_mission, delete_m
 
 from api.open_api_responses import (open_api_response_login, open_api_response_not_found_character, open_api_response_error_server,
                                     open_api_response_already_exist_mission, open_api_response_not_found_choice, open_api_response_not_found_mission)
-from api.schemas import FinalResult, MissionPlayingCreate, MissionPlayingResponse, MissionResponse, EnumRank, StatAdminMissionBase, StepResponse, TimeLeft
+from api.schemas import CharacterBase, FinalResult, MissionPlayingCreate, MissionPlayingResponse, MissionResponse, EnumRank, StatAdminMissionBase, StepResponse, TimeLeft
 from api.dependencies import get_my_character_and_user, get_session, check_if_mission
 from api.models import Choice, Finality, Mission, MissionPlaying, Step, User, Character
 from api.services import MISSION_RANK_PERCENT, get_finish_time, check_if_finish_time,  get_additional_time, get_choice_value, get_result_step, get_time_left, get_random_mission, get_stat_character_from_srpg, make_response_step, make_url_endpoint
@@ -246,7 +246,14 @@ def edit_position(id_choice: int, user: User = Depends(check_if_mission), db: Se
             status_code=status.HTTP_200_OK,
             response_model=MissionResponse)
 def read_mission(id: int, user: User = Depends(check_if_mission), db: Session = Depends(get_session)):
-    if id != user.mission_playing.mission_id:
+    try:
+        mission_playing: MissionPlaying = get_mission_playing(db, user=user)
+        character = Character = get_character(db, id=mission_playing.character_id)
+    except:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
+
+    if id != mission_playing.mission_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Mission not according to your character")
     try:
@@ -255,4 +262,4 @@ def read_mission(id: int, user: User = Depends(check_if_mission), db: Session = 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
 
-    return MissionResponse(**mission.dict())
+    return MissionResponse(**mission.dict(),village=character.village )

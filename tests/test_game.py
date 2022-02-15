@@ -154,10 +154,29 @@ class TestGame(unittest.TestCase):
             url=self.url+"/in-progress/result", headers=self.header)
         self.assertEqual(response.status_code, 200)
 
+    def test_get_mission_no_mission(self):
+        id_mission = 1
+        response = requests.get(url=self.url+"/missions/"+str(id_mission), headers=self.header)
+        self.assertEqual(response.json()["detail"], 'Mission Not Found')
+
+    def test_get_mission_mission_according_with_user(self):
+        data = {"rank": "C", "character_name": "Narrateur"}
+        requests.post(url=self.url+'/start', headers=self.header, json=data)
+        id_mission = 1
+        response = requests.get(url=self.url+"/missions/"+str(id_mission), headers=self.header)
+        self.assertEqual(response.json()["detail"], 'Mission not according to your character')
+
+    def test_get_mission_success(self):
+        data = {"rank": "C", "character_name": "Narrateur"}
+        requests.post(url=self.url+'/start', headers=self.header, json=data)
+        id_mission = 2
+        response = requests.get(url=self.url+"/missions/"+str(id_mission), headers=self.header)
+        self.assertEqual(response.status_code, 200)
+
+
     def tearDown(self) -> None:
         SQLModel.metadata.drop_all(engine_test)
 
 
 if __name__ == '__main__':
     unittest.main(failfast=True)
-    

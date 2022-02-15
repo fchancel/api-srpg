@@ -70,6 +70,15 @@ class TestCharacter(unittest.TestCase):
         response = requests.patch(url=self.url, headers=self.header)
         self.assertEqual(response.status_code, 200, msg="excepted status code 200")
 
+    def test_get_one_character_success(self):
+        id_character = 1
+        response = requests.get(url=f"{self.url}/{id_character}", headers=self.header)
+        self.assertEqual(response.status_code, 200)
+
+    def test_get_one_character_not_exist(self):
+        id_character = 2
+        response = requests.get(url=f"{self.url}/{id_character}", headers=self.header)
+        self.assertEqual(response.json()['detail'], "Character Not Found" )
 
     def tearDown(self) -> None:
         SQLModel.metadata.drop_all(engine_test)
