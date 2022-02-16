@@ -16,7 +16,6 @@ tags_metadata = [
 router = APIRouter(tags={"Users"}, prefix='/users')
 
 
-
 # -------------------------------------------------#
 #               1.User                             #
 # -------------------------------------------------#
@@ -36,7 +35,8 @@ def create_user(token_srpg: str = Body(...), id_discord: Optional[int] = Body(No
     token_srpg = token_srpg.strip()
     try:
         user = get_user(db, token_srpg=token_srpg)
-    except:
+    except Exception as e:
+        print(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
     if user:
@@ -45,8 +45,7 @@ def create_user(token_srpg: str = Body(...), id_discord: Optional[int] = Body(No
 
     character_list = get_characters_from_srpg(token_srpg)
     if not character_list:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Token")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Token")
     try:
         user = create_user_db(db, token_srpg, id_discord)
         save_characters(db, user, character_list)
@@ -54,5 +53,3 @@ def create_user(token_srpg: str = Body(...), id_discord: Optional[int] = Body(No
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
     return user
-
-
