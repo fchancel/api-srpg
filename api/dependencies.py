@@ -91,7 +91,7 @@ def get_current_user(token: HTTPAuthorizationCredentials = Security(oauth_schema
             settings = get_settings()
             payload = jwt.decode(token, settings.secret_key,
                                  algorithms=[settings.algorithm_hash])
-            discord_id = payload.get("discord-id")
+            discord_id = payload.get("discord_id")
             if discord_id is None:
                 raise credentials_exception
         except jwt.JWTError as e:

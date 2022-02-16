@@ -33,9 +33,7 @@ class Settings(BaseSettings):
 
 
     # TOKEN
-    secret_key: str = '2e816a6e37893d60b91cc8e4c6a4ce3805a875cd20407827972545c7af98fea7'
-    secret_key_bot: str = '2e816a6e37893d60b91cc8e4c6a4ce3805a875cd20407827972545c7af98fea7'
-    secret_key_bot: str = 'jg2roh8ne723sn3r8023fH8ha139dopze9ç912E32kjufzh8de23n892n743410d'
+    secret_key: str = 'jg2roh8ne723sn3r8023fH8ha139dopze9ç912E32kjufzh8de23n892n743410d'
     
     algorithm_hash: str = 'HS256'
     access_token_expire_minutes_mail: int = 60 * 24
