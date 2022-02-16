@@ -71,7 +71,7 @@ def get_characters(db: Session = Depends(get_session),
 
 
 @router.get("/{id}",
-            summary="Get one character of mine",
+            summary="Get one character of mine by id",
             status_code=status.HTTP_200_OK,
             response_model=CharacterBase)
 def get_one_character(id: int,
@@ -80,10 +80,38 @@ def get_one_character(id: int,
     try:
         character: Character = get_character(db, id=id)
     except:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
 
     if not character:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Character Not Found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Character Not Found")
+
+    for user_character in character.users:
+        if user_character.id == user.id:
+            return CharacterBase(**character.dict())
+
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED, detail="Your not the owner")
+
+
+@router.get("/{family_name}-{first_name}",
+            summary="Get one character of mine by name",
+            status_code=status.HTTP_200_OK,
+            response_model=CharacterBase)
+def get_one_character_by_name(family_name: str,
+                              first_name: str,
+                              db: Session = Depends(get_session),
+                              user: User = Depends(get_current_user)):
+    try:
+        character: Character = get_character(db, name=f"{family_name} {first_name}")
+    except:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
+
+    if not character:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Character Not Found")
 
     for user_character in character.users:
         if user_character.id == user.id:

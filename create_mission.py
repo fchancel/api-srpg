@@ -5,10 +5,10 @@ import traceback
 from sqlalchemy.ext.serializer import loads, dumps
 from sqlmodel import Session, SQLModel
 
-from api.core.database import engine
 from api.crud import (create_finality, create_mission, delete_choices_from_mission, delete_conditions_from_mission, delete_finality_from_mission, delete_mission, delete_steps_from_mission, get_finality, get_village, edit_mission_village, create_choice, create_step, create_condition,
                       edit_choice, get_choice, get_step, get_condition)
 from api.services import MISSION_RANK_PERCENT
+from api.core.database import engine
 from tests.conftest import engine_test
 
 
@@ -37,15 +37,16 @@ def generate_mission_script(test: bool = False, recursive=True, echo=True):
             generate_mission_script(True, False, echo)
             file_name = "test_konoha.json"
             file = f"{os.getcwd()}/data/mission_json/{file_name}"
-            engine = engine_test
+            engineDb = engine_test
         else:
             file_name = "test_kumo.json"
             file = f"{os.getcwd()}/data/mission_json/{file_name}"
-            engine = engine_test
+            engineDb = engine_test
         #! NOT CHANGE HERE
     else:
         # EDIT HERE FOR CHANGE MISSION IN SCRIPT
-        file_name = "test.json"
+        engineDb = engine
+        file_name = "test_kumo.json"
         file = f"{os.getcwd()}/data/mission_json/{file_name}"
 
     with open(file) as json_data:
@@ -57,7 +58,7 @@ def generate_mission_script(test: bool = False, recursive=True, echo=True):
     relations = []
     finality = []
     villages = []
-    with Session(engine) as db:
+    with Session(engineDb) as db:
         try:
             # CREATE MISSION
             if echo:
