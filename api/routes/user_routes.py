@@ -1,14 +1,12 @@
 from typing import Optional
-from datetime import timedelta
-from fastapi import APIRouter, Body, status, Depends, HTTPException, Security
-from fastapi.security import APIKeyHeader
+from fastapi import APIRouter, Body, status, Depends, HTTPException
 from sqlmodel import Session
 
 from api.open_api_responses import open_api_response_error_server, open_api_response_invalid_token
-from api.schemas import UserBase, UserResponse, Token
-from api.dependencies import get_session
-from api.services import (
-    save_characters, get_characters_from_srpg)
+from api.schemas import UserBase, UserResponse
+from api.dependencies import get_session, get_current_user
+from api.services import (save_characters, get_characters_from_srpg)
+from api.models import User
 from api.crud import add_connexion_discord, create_user_db, get_user
 
 tags_metadata = [
@@ -52,3 +50,9 @@ def create_user(token_srpg: str = Body(...), id_discord: Optional[int] = Body(No
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
     return user
+
+
+@router.get('', response_model=UserBase, status_code=status.HTTP_200_OK, summary="Get user by header")
+def get_user_by_header(db: Session = Depends(get_session),
+                       user: User = Depends(get_current_user)):
+    return UserBase(**user.dict(), mission=True if user.mission_playing else False)

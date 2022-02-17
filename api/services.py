@@ -207,6 +207,8 @@ def get_random_mission(db: Session, rank: str, village: str) -> Mission:
     if village == "Nukenin":
         village = "Errant"
     missions = get_missions(db, rank, village)
+    if not missions:
+        return None
     size_max = len(missions)
     return missions[randint(0, size_max - 1)]
 

@@ -16,7 +16,7 @@ class Settings(BaseSettings):
 
     # ENVIRONMENT
     environment: str = 'dev'
-    test: bool = True
+    test: bool = False
     base_dir = os.path.dirname(os.path.abspath(__file__))
     app_url = 'http://localhost:8000/'
 

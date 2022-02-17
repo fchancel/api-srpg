@@ -76,6 +76,7 @@ class TokenData(BaseModel):
 class UserBase(SQLModel):
     token_srpg: str
     discord_id: Optional[int]
+    mission: Optional[bool]
 
 
 class UserResponse(SQLModel):
@@ -99,7 +100,6 @@ class CharacterBase(SQLModel):
     exp: int = Field(default=0)
     cash: int = Field(default=0)
     url_avatar: str
-
 
 class CharacterCreate(CharacterBase):
     pass

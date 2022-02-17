@@ -95,7 +95,7 @@ def get_one_character(id: int,
         status_code=status.HTTP_401_UNAUTHORIZED, detail="Your not the owner")
 
 
-@router.get("/{family_name}-{first_name}",
+@router.get("/name/{family_name}-{first_name}",
             summary="Get one character of mine by name",
             status_code=status.HTTP_200_OK,
             response_model=CharacterBase)

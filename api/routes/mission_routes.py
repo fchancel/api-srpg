@@ -47,6 +47,11 @@ def start_game(rank: EnumRank = Body(...),
 
     try:
         mission_db: Mission = get_random_mission(db, rank, character.village)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
+    if not mission_db:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No Mission")
+    try:
         mission_playing: MissionPlaying = create_mission_playing(db, MissionPlayingCreate(
             mission_id=mission_db.id, character_id=character.id, begin_time=datetime.now(),
             percent_character=get_stat_character_from_srpg(character)['total'],
@@ -54,12 +59,10 @@ def start_game(rank: EnumRank = Body(...),
         mission = get_mission(db, mission_playing.mission_id)
         character = get_character(db, id=mission_playing.character_id)
     except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
 
     end_time = get_finish_time(mission_playing.begin_time,
                                rank, mission_playing.additionnal_time)
-
     return MissionPlayingResponse(time_left=get_time_left(end_time),
                                   mission=MissionResponse(
                                       **mission.dict(), village=character.village),
