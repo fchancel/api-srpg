@@ -120,6 +120,7 @@ class EnumRank(str, Enum):
 
 
 class MissionResponse(SQLModel):
+    id: int
     title: str
     rank: str
     village: str
@@ -128,10 +129,9 @@ class MissionResponse(SQLModel):
 
 class MissionPlayingResponse(SQLModel):
     finish_choice: bool = False
-    begin_time: datetime
-    end_time: datetime
-    mission: AnyHttpUrl
-    character: AnyHttpUrl
+    time_left: timedelta
+    mission: MissionResponse
+    character: CharacterBase
 
 
 class MissionPlayingCreate(SQLModel):

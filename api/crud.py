@@ -3,7 +3,8 @@ from pydantic import EmailStr
 
 from sqlmodel import Session, select, BigInteger, text
 
-from api.models import Finality, MissionPlaying, MissionVillage, RankStat, Village, User, Character, Mission, Step, Choice, Condition, UserCharacterLink, StatAdminMission
+from api.models import (Finality, MissionPlaying, MissionVillage, RankStat, Village, User, Character, Mission, Step,
+                        Choice, Condition, UserCharacterLink, StatAdminMission)
 from api.schemas import StatAdminMissionBase, CharacterCreate, EnumRank, MissionPlayingCreate
 
 # -------------------------------------------------#
@@ -60,7 +61,10 @@ def create_user_db(db: Session, token_srpg: str, discord_id: Optional[int]):
     return db_user
 
 
-def get_user(db: Session, id: Optional[int] = None, discord_id: Optional[BigInteger] = None, token_srpg: Optional[str] = None, email: Optional[EmailStr] = None) -> Optional[User]:
+def get_user(
+        db: Session, id: Optional[int] = None, discord_id: Optional[BigInteger] = None,
+        token_srpg: Optional[str] = None,
+        email: Optional[EmailStr] = None) -> Optional[User]:
     user = None
     if id:
         user = db.exec(select(User).where(User.id == id)).first()
@@ -75,7 +79,8 @@ def get_user(db: Session, id: Optional[int] = None, discord_id: Optional[BigInte
     return user
 
 
-def add_connexion_discord(db: Session, user: User, token_srpg: Optional[str] = None, discord_id: Optional[int] = None) -> User:
+def add_connexion_discord(
+        db: Session, user: User, token_srpg: Optional[str] = None, discord_id: Optional[int] = None) -> User:
     if discord_id:
         discord_id = discord_id
     db.commit()
@@ -90,7 +95,9 @@ def add_connexion_discord(db: Session, user: User, token_srpg: Optional[str] = N
 # -------------------------------------------------#
 
 
-def create_character(db: Session, character: CharacterCreate, user: Optional['User'], rank_stat: Optional[List['RankStat']]):
+def create_character(
+        db: Session, character: CharacterCreate, user: Optional['User'],
+        rank_stat: Optional[List['RankStat']]):
     db_character: Character = Character.parse_obj(character)
     db.add(db_character)
     db.commit()
@@ -104,7 +111,9 @@ def create_character(db: Session, character: CharacterCreate, user: Optional['Us
     return character
 
 
-def edit_character(db: Session, character: Character, village: Optional[str] = None, url_avatar: Optional[str] = None, user: Optional['User'] = None):
+def edit_character(
+        db: Session, character: Character, village: Optional[str] = None, url_avatar: Optional[str] = None,
+        user: Optional['User'] = None):
     if village:
         character.village = village
     if url_avatar:
@@ -170,8 +179,8 @@ def get_mission(db: Session, id: int):
 
 def get_missions(db: Session, rank: Optional[str] = None, village: Optional[str] = None):
     if rank and village:
-        missions = db.exec(select(Mission).join(MissionVillage).join(
-            Village).where(Mission.rank == rank, Village.name == village)).all()
+        missions = db.exec(select(Mission).where(Mission.rank == rank).join(MissionVillage).join(
+            Village).where(Village.name == village)).all()
 
     elif rank:
         missions = db.exec(select(Mission).where(Mission.rank == rank)).all()
@@ -204,7 +213,8 @@ def create_step(db: Session, description: str, mission_id: int, first_step: bool
 def get_step(db: Session, id: int):
     return db.get(Step, id)
 
-def get_first_step(db:Session):
+
+def get_first_step(db: Session):
     return db.exec(select(Step).where(Step.first_step == True)).first()
 
 
@@ -237,7 +247,7 @@ def get_choice(db: Session, id: int):
 
 
 def get_choice_from_step(db: Session, step_from: Optional[Step] = None, step_to: Optional[Step] = None):
-    choices=[]
+    choices = []
     if step_from and step_to:
         choices: Choice = db.exec(select(Choice).where(
             Choice.step_to_id == step_to.id, Choice.step_from_id == step_from.id)).all()
@@ -252,7 +262,9 @@ def get_choice_from_step(db: Session, step_from: Optional[Step] = None, step_to:
     return choices
 
 
-def edit_choice(db: Session, choice: Choice, step_from: Optional[Step] = None, step_to: Optional[Step] = None, conditions: Optional[list] = None, finalities: Optional[list] = None):
+def edit_choice(
+        db: Session, choice: Choice, step_from: Optional[Step] = None, step_to: Optional[Step] = None,
+        conditions: Optional[list] = None, finalities: Optional[list] = None):
     if step_from:
         choice.step_from_id = step_from.id
     if step_to:
@@ -367,7 +379,10 @@ def get_mission_playing(db: Session, user: Optional[User] = None, character: Opt
     return mission
 
 
-def update_mission_playing(db: Session, mission_playing: MissionPlaying, percent_choice: Optional[int] = None, step: Optional['Step'] = None, additional_time: Optional[int] = None, last_choice: Optional['Choice'] = None) -> Mission:
+def update_mission_playing(
+        db: Session, mission_playing: MissionPlaying, percent_choice: Optional[int] = None,
+        step: Optional['Step'] = None,
+        additional_time: Optional[int] = None, last_choice: Optional['Choice'] = None) -> Mission:
     mission_playing.step = step
     if percent_choice:
         mission_playing.percent_choice = percent_choice
@@ -417,10 +432,11 @@ def create_rank_stat(db: Session, rank: str) -> RankStat:
 
 
 def get_rank_stat(db: Session, character: Character, rank: str):
-    return db.exec(select(RankStat).where(Character.id == character.id, RankStat.rank == rank)).first() 
+    return db.exec(select(RankStat).where(Character.id == character.id, RankStat.rank == rank)).first()
 
 
-def update_rank_stat(db: Session, character: Character, rank: str, win: Optional[int] = None, fail: Optional[int] = None):
+def update_rank_stat(
+        db: Session, character: Character, rank: str, win: Optional[int] = None, fail: Optional[int] = None):
     rank_db = get_rank_stat(db, character, rank)
     if win is not None:
         rank_db.win += 1

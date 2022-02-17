@@ -15,7 +15,8 @@ from config import get_settings, log
 
 from api.schemas import ChoiceResponse, StepResponse, CharacterCreate
 from api.models import Mission, MissionPlaying, Step, User, Character, Choice
-from api.crud import create_rank_stat, get_finality_from_choice, get_missions, create_character, get_character, edit_character
+from api.crud import (create_rank_stat, get_finality_from_choice, get_missions, create_character, get_character,
+                      edit_character)
 
 # -------------------------------------------------#
 #                   MENU                           #
@@ -105,8 +106,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     else:
         expire = datetime.utcnow() + timedelta(minutes=15)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(
-        to_encode, settings.secret_key, algorithm=settings.algorithm_hash)
+    encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm_hash)
     return encoded_jwt
 
 
@@ -168,11 +168,13 @@ def save_characters(db: Session, user: User, list_character: list(), refresh: bo
     return character_db_list
 
 
-def delete_connexion_with_character(db: Session, user: User, list_character_srpg: list(), list_character_db: List[Character]):
+def delete_connexion_with_character(
+        db: Session, user: User, list_character_srpg: list(),
+        list_character_db: List[Character]):
     list_of_all_values = [value for elem in list_character_srpg
                           for value in elem.values()]
     for character in list_character_db:
-        if not character.name in list_of_all_values:
+        if character.name not in list_of_all_values:
             character.users.remove(user)
     db.commit()
     return

@@ -12,7 +12,7 @@ from api.services import (
 from api.crud import add_connexion_discord, create_user_db, get_user
 
 tags_metadata = [
-    {"name": "users",  "description": "Operations with users. The **login** logic is also here.", }]
+    {"name": "users", "description": "Operations with users. The **login** logic is also here.", }]
 router = APIRouter(tags={"Users"}, prefix='/users')
 
 
@@ -26,10 +26,9 @@ router = APIRouter(tags={"Users"}, prefix='/users')
 #                                                  #
 # -------------------------------------------------#
 
-@ router.post('', response_model=UserResponse, status_code=status.HTTP_201_CREATED, summary="Create a new user", responses={
-    **open_api_response_invalid_token(),
-    **open_api_response_error_server()
-})
+@router.post('', response_model=UserResponse, status_code=status.HTTP_201_CREATED, summary="Create a new user",
+             responses={**open_api_response_invalid_token(),
+                        **open_api_response_error_server()})
 def create_user(token_srpg: str = Body(...), id_discord: Optional[int] = Body(None),
                 db: Session = Depends(get_session)):
     token_srpg = token_srpg.strip()
@@ -49,7 +48,7 @@ def create_user(token_srpg: str = Body(...), id_discord: Optional[int] = Body(No
     try:
         user = create_user_db(db, token_srpg, id_discord)
         save_characters(db, user, character_list)
-    except:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
     return user

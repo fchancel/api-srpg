@@ -1,24 +1,32 @@
 from datetime import datetime
+from os import EX_CANTCREAT
 import traceback
 from fastapi import APIRouter, Body, Depends, status, HTTPException, Response
 from sqlmodel import Session
-from api.crud import create_mission_playing, create_stat_admin_mission, delete_mission_playing_db, get_character, get_characters_db, get_choice, get_choice_from_step, get_first_step, get_mission, get_mission_playing, get_step, update_mission_playing, update_rank_stat
+from api.crud import (create_mission_playing, create_stat_admin_mission, delete_mission_playing_db, get_character,
+                      get_characters_db, get_choice, get_choice_from_step, get_first_step, get_mission,
+                      get_mission_playing, get_step, update_mission_playing, update_rank_stat)
 
-from api.open_api_responses import (open_api_response_login, open_api_response_not_found_character, open_api_response_error_server,
-                                    open_api_response_already_exist_mission, open_api_response_not_found_choice, open_api_response_not_found_mission)
-from api.schemas import CharacterBase, FinalResult, MissionPlayingCreate, MissionPlayingResponse, MissionResponse, EnumRank, StatAdminMissionBase, StepResponse, TimeLeft
+from api.open_api_responses import (open_api_response_login, open_api_response_not_found_character,
+                                    open_api_response_error_server, open_api_response_already_exist_mission,
+                                    open_api_response_not_found_choice, open_api_response_not_found_mission)
+from api.schemas import (CharacterBase, FinalResult, MissionPlayingCreate, MissionPlayingResponse, MissionResponse,
+                         EnumRank, StatAdminMissionBase, StepResponse, TimeLeft)
 from api.dependencies import get_my_character_and_user, get_session, check_if_mission
 from api.models import Choice, Finality, Mission, MissionPlaying, Step, User, Character
-from api.services import MISSION_RANK_PERCENT, get_finish_time, check_if_finish_time,  get_additional_time, get_choice_value, get_result_step, get_time_left, get_random_mission, get_stat_character_from_srpg, make_response_step, make_url_endpoint
+from api.services import (MISSION_RANK_PERCENT, get_finish_time, check_if_finish_time, get_additional_time,
+                          get_choice_value, get_result_step, get_time_left, get_random_mission,
+                          get_stat_character_from_srpg, make_response_step, make_url_endpoint)
 
 
 tags_metadata = [
-    {"name": "games",  "description": "Operations with gameplay.", }]
+    {"name": "games", "description": "Operations with gameplay.", }]
 router = APIRouter(tags={"games"}, prefix='/games')
 
 
 @router.post("/start",
-             summary="Start game with a random mission for a character according to the Rank and for the character Choice",
+             summary="Start game with a random mission for a character according to the Rank and for the\
+                 character Choice",
              status_code=status.HTTP_201_CREATED,
              response_model=MissionPlayingResponse,
              responses={
@@ -30,7 +38,6 @@ router = APIRouter(tags={"games"}, prefix='/games')
 def start_game(rank: EnumRank = Body(...),
                user_character: dict = Depends(get_my_character_and_user),
                db: Session = Depends(get_session)):
-
     user: User = user_character['user']
     character: Character = user_character['character']
 
@@ -42,20 +49,21 @@ def start_game(rank: EnumRank = Body(...),
         mission_db: Mission = get_random_mission(db, rank, character.village)
         mission_playing: MissionPlaying = create_mission_playing(db, MissionPlayingCreate(
             mission_id=mission_db.id, character_id=character.id, begin_time=datetime.now(),
-            percent_character=get_stat_character_from_srpg(character)[
-                'total'],
+            percent_character=get_stat_character_from_srpg(character)['total'],
             step_id=get_first_step(db).id, user_id=user.id))
-    except:
+        mission = get_mission(db, mission_playing.mission_id)
+        character = get_character(db, id=mission_playing.character_id)
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
 
     end_time = get_finish_time(mission_playing.begin_time,
                                rank, mission_playing.additionnal_time)
-    return MissionPlayingResponse(begin_time=mission_playing.begin_time,
-                                  end_time=end_time,
-                                  mission=make_url_endpoint(
-                                      'games/missions', mission_playing.mission_id),
-                                  character=make_url_endpoint('characters', mission_playing.character_id))
+
+    return MissionPlayingResponse(time_left=get_time_left(end_time),
+                                  mission=MissionResponse(
+                                      **mission.dict(), village=character.village),
+                                  character=CharacterBase(**character.dict()))
 
 
 @router.get('/in-progress',
@@ -70,12 +78,14 @@ def start_game(rank: EnumRank = Body(...),
 def get_game_in_progress(user: User = Depends(check_if_mission), db: Session = Depends(get_session)):
 
     try:
-        mission_playing = get_mission_playing(db, user=user)
+        mission_playing: MissionPlaying = get_mission_playing(db, user=user)
         mission_db: Mission = get_mission(db, mission_playing.mission_id)
+        character: Character = get_character(
+            db, id=mission_playing.character_id)
         finish_choice: bool = False
         if mission_playing.last_choice and mission_playing.last_choice.finalities:
             finish_choice: bool = True
-    except Exception as err:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
 
@@ -83,11 +93,10 @@ def get_game_in_progress(user: User = Depends(check_if_mission), db: Session = D
                                mission_db.rank, mission_playing.additionnal_time)
 
     return MissionPlayingResponse(finish_choice=finish_choice,
-                                  begin_time=mission_playing.begin_time,
-                                  end_time=end_time,
-                                  mission=make_url_endpoint(
-                                      'games/missions', mission_playing.mission_id),
-                                  character=make_url_endpoint('characters', mission_playing.character_id))
+                                  time_left=get_time_left(end_time),
+                                  mission=MissionResponse(
+                                      **mission_db.dict(), village=character.village),
+                                  character=CharacterBase(**character.dict()))
 
 
 @router.get('/in-progress/time-left',
@@ -103,11 +112,13 @@ def get_game_time_left(user: User = Depends(check_if_mission), db: Session = Dep
     try:
         mission_playing = get_mission_playing(db, user=user)
         mission: Mission = get_mission(db, mission_playing.mission_id)
-    except:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
 
-    return TimeLeft(time=get_time_left(get_finish_time(mission_playing.begin_time, mission.rank, mission_playing.additionnal_time)))
+    return TimeLeft(
+        time=get_time_left(
+            get_finish_time(mission_playing.begin_time, mission.rank, mission_playing.additionnal_time)))
 
 
 @router.get('/in-progress/result',
@@ -123,7 +134,7 @@ def get_game_result(user: User = Depends(check_if_mission),
                     db: Session = Depends(get_session)):
     try:
         mission_playing: MissionPlaying = get_mission_playing(db, user=user)
-    except:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
     if not mission_playing.last_choice or not mission_playing.last_choice.finalities:
@@ -131,18 +142,18 @@ def get_game_result(user: User = Depends(check_if_mission),
             status_code=status.HTTP_403_FORBIDDEN, detail="You need take all choice")
     try:
         mission: Mission = get_mission(db, mission_playing.mission_id)
-    except:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
 
     if not check_if_finish_time(mission_playing.begin_time, mission.rank, mission_playing.additionnal_time):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                                detail="Time is not over")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="Time is not over")
     try:
         finality: Finality = get_result_step(db, mission_playing, mission)
         character: Character = get_character(
             db, id=mission_playing.character_id)
-    except :
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
     try:
@@ -152,18 +163,18 @@ def get_game_result(user: User = Depends(check_if_mission),
         else:
             update_rank_stat(db, character, mission.rank, fail=1)
         create_stat_admin_mission(db, StatAdminMissionBase(
-                mission_name=mission.title,
-                mission_rank=mission.rank,
-                mission_village=character.village,
-                character_name=character.name,
-                percent_mission=MISSION_RANK_PERCENT[mission.rank],
-                percent_character=mission_playing.percent_character,
-                percent_choice=mission_playing.percent_choice,
-                result=finality.value
-            ))
+            mission_name=mission.title,
+            mission_rank=mission.rank,
+            mission_village=character.village,
+            character_name=character.name,
+            percent_mission=MISSION_RANK_PERCENT[mission.rank],
+            percent_character=mission_playing.percent_character,
+            percent_choice=mission_playing.percent_choice,
+            result=finality.value
+        ))
         # AJOUT CASH
         finality: Finality = get_result_step(db, mission_playing, mission)
-    except :
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
 
@@ -187,7 +198,7 @@ def get_step_game_in_progress(user: User = Depends(check_if_mission), db: Sessio
         mission_playing: MissionPlaying = get_mission_playing(db, user=user)
         choices = get_choice_from_step(db, step_from=mission_playing.step)
         step = get_step(db, mission_playing.step_id)
-    except:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
 
@@ -212,13 +223,13 @@ def edit_position(id_choice: int, user: User = Depends(check_if_mission), db: Se
     try:
         mission_playing: MissionPlaying = get_mission_playing(db, user=user)
         choices = get_choice_from_step(db, step_from=mission_playing.step)
-    except:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
 
     list_id = [value.id for value in choices]
 
-    if not id_choice in list_id:
+    if id_choice not in list_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="")
     try:
         character: Character = get_character(
@@ -235,7 +246,7 @@ def edit_position(id_choice: int, user: User = Depends(check_if_mission), db: Se
                                                      choice),
                                                  last_choice=choice)
 
-    except:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
     return
@@ -248,8 +259,9 @@ def edit_position(id_choice: int, user: User = Depends(check_if_mission), db: Se
 def read_mission(id: int, user: User = Depends(check_if_mission), db: Session = Depends(get_session)):
     try:
         mission_playing: MissionPlaying = get_mission_playing(db, user=user)
-        character = Character = get_character(db, id=mission_playing.character_id)
-    except:
+        character = Character = get_character(
+            db, id=mission_playing.character_id)
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
 
@@ -258,8 +270,8 @@ def read_mission(id: int, user: User = Depends(check_if_mission), db: Session = 
                             detail="Mission not according to your character")
     try:
         mission = get_mission(db, id)
-    except:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
 
-    return MissionResponse(**mission.dict(),village=character.village )
+    return MissionResponse(**mission.dict(), village=character.village)

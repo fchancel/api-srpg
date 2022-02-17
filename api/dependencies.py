@@ -33,14 +33,14 @@ def get_session():
         with Session(engine_test) as session:
             try:
                 yield session
-            except:
+            except Exception:
                 session.rollback()
                 raise
     else:
         with Session(engine) as session:
             try:
                 yield session
-            except:
+            except Exception:
                 session.rollback()
                 raise
 
@@ -84,17 +84,19 @@ credentials_exception = HTTPException(
 oauth_schema = HTTPBearer()
 
 
-def get_current_user(token: HTTPAuthorizationCredentials = Security(oauth_schema), front: str = Header("website"), db: Session = Depends(get_session)):
+def get_current_user(
+        token: HTTPAuthorizationCredentials = Security(oauth_schema),
+        front: str = Header("website"),
+        db: Session = Depends(get_session)):
     token = token.credentials
     if front == 'bot':
         try:
             settings = get_settings()
-            payload = jwt.decode(token, settings.secret_key,
-                                 algorithms=[settings.algorithm_hash])
+            payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm_hash])
             discord_id = payload.get("discord_id")
             if discord_id is None:
                 raise credentials_exception
-        except jwt.JWTError as e:
+        except jwt.JWTError:
             raise credentials_exception
 
         user = get_user(db, discord_id=discord_id)
@@ -106,7 +108,6 @@ def get_current_user(token: HTTPAuthorizationCredentials = Security(oauth_schema
     return user
 
 
-
 # -------------------------------------------------#
 #                                                  #
 #               2.Character                        #
@@ -114,18 +115,18 @@ def get_current_user(token: HTTPAuthorizationCredentials = Security(oauth_schema
 # -------------------------------------------------#
 
 
-def get_my_character_and_user(character_name: str = Body(...), db: Session = Depends(get_session), user: User = Depends(get_current_user)) -> Character:
+def get_my_character_and_user(
+        character_name: str = Body(...),
+        db: Session = Depends(get_session),
+        user: User = Depends(get_current_user)) -> Character:
     try:
         character: Character = get_character(db, name=character_name)
-    except:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
     if not character:
-        raise HTTPException(
-            tatus_code=status.HTTP_404_NOT_FOUND, detail="Character Not Found")
-    elif not user in character.users:
-        raise HTTPException(tatus_code=status.HTTP_403_FORBIDDEN,
-                            detail="Character is not yours")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Character Not Found")
+    elif user not in character.users:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Character is not yours")
     return {
         'user': user,
         'character': character
@@ -140,6 +141,5 @@ def get_my_character_and_user(character_name: str = Body(...), db: Session = Dep
 
 def check_if_mission(user: User = Depends(get_current_user)) -> User:
     if not user.mission_playing:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Mission Not Found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mission Not Found")
     return user

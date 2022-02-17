@@ -1,0 +1,14 @@
+{
+    "python.formatting.provider": "autopep8",
+    "python.formatting.autopep8Args": ["--max-line-length", "120", "--experimental"],
+    "python.linting.flake8Enabled": true,
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": false,
+    "python.linting.mypyEnabled": false,
+    "python.linting.banditEnabled": false,
+    "python.linting.flake8Args": [
+        "--max-line-length=120",
+        "--ignore=E402,F841,F401,E302,E305",
+    ],
+    "editor.rulers": [120]
+}

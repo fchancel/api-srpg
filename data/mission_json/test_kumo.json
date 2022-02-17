@@ -60,11 +60,10 @@
         "caption": "Step",
         "labels": [
           "Mission",
-          "Kumo",
-          "Konoha"
+          "Kumo"
         ],
         "properties": {
-          "title": "Test Kumo",
+          "title": "Test mission",
           "description": "Test",
           "rank": "C",
           "cash": "0"

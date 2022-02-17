@@ -1,18 +1,18 @@
-from fastapi import APIRouter, Body, Depends, HTTPException, status
-from httpx import get
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
 from typing import List
 
 
-from api.open_api_responses import open_api_response_error_server, open_api_response_login, open_api_response_not_found_character
+from api.open_api_responses import (open_api_response_error_server, open_api_response_login,
+                                    open_api_response_not_found_character)
 from api.dependencies import get_session, get_current_user
 from api.models import Character, User
 from api.crud import get_character, get_characters_db
 from api.schemas import CharacterBase
-from api.services import delete_connexion_with_character, save_characters, delete_connexion_with_character, get_characters_from_srpg
+from api.services import (save_characters, delete_connexion_with_character, get_characters_from_srpg)
 
 tags_metadata = [
-    {"name": "characters",  "description": "Operations with characters.", }]
+    {"name": "characters", "description": "Operations with characters.", }]
 router = APIRouter(tags={"Characters"}, prefix='/characters')
 
 
@@ -39,7 +39,7 @@ def update_characters(db: Session = Depends(get_session),
             db, user, list_character_srpg, refresh=True)
         delete_connexion_with_character(
             db, user, list_character_srpg, list_characters)
-    except:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
 
@@ -59,7 +59,7 @@ def get_characters(db: Session = Depends(get_session),
                    user: User = Depends(get_current_user)):
     try:
         characters_list = get_characters_db(db, user.id)
-    except:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
 
@@ -79,7 +79,7 @@ def get_one_character(id: int,
                       user: User = Depends(get_current_user)):
     try:
         character: Character = get_character(db, id=id)
-    except:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
 
@@ -105,7 +105,7 @@ def get_one_character_by_name(family_name: str,
                               user: User = Depends(get_current_user)):
     try:
         character: Character = get_character(db, name=f"{family_name} {first_name}")
-    except:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
 
