@@ -137,8 +137,9 @@
       "style": {},
       "labels": [],
       "properties": {
-        "description": "finality 1",
-        "value": "win"
+        "description": "finality 1 Konoha",
+        "value": "win",
+        "cash": 10
       }
     },
     {
@@ -151,8 +152,9 @@
       "style": {},
       "labels": [],
       "properties": {
-        "description": "finality 2",
-        "value": "fail"
+        "description": "finality 2 Konoha",
+        "value": "fail",
+        "cash": -10
       }
     },
     {
@@ -179,7 +181,8 @@
       "labels": [],
       "properties": {
         "description": "finality 1.1",
-        "value": "win"
+        "value": "win",
+        "cash": 10
       },
       "style": {}
     },
@@ -193,7 +196,8 @@
       "labels": [],
       "properties": {
         "description": "finality 1.2",
-        "value": "fail"
+        "value": "fail",
+        "cash": -10
       },
       "style": {}
     },

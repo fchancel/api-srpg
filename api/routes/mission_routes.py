@@ -3,8 +3,8 @@ from os import EX_CANTCREAT
 import traceback
 from fastapi import APIRouter, Body, Depends, status, HTTPException, Response
 from sqlmodel import Session
-from api.crud import (create_mission_playing, create_stat_admin_mission, delete_mission_playing_db, get_character,
-                      get_characters_db, get_choice, get_choice_from_step, get_first_step, get_mission,
+from api.crud import (create_mission_playing, create_stat_admin_mission, delete_mission_playing_db, edit_character,
+                      get_character, get_choice, get_choice_from_step, get_first_step, get_mission,
                       get_mission_playing, get_step, update_mission_playing, update_rank_stat)
 
 from api.open_api_responses import (open_api_response_login, open_api_response_not_found_character,
@@ -14,7 +14,7 @@ from api.schemas import (CharacterBase, FinalResult, MissionPlayingCreate, Missi
                          EnumRank, StatAdminMissionBase, StepResponse, TimeLeft)
 from api.dependencies import get_my_character_and_user, get_session, check_if_mission
 from api.models import Choice, Finality, Mission, MissionPlaying, Step, User, Character
-from api.services import (MISSION_RANK_PERCENT, get_finish_time, check_if_finish_time, get_additional_time,
+from api.services import (MISSION_RANK_PERCENT, get_cash, get_finish_time, check_if_finish_time, get_additional_time,
                           get_choice_value, get_result_step, get_time_left, get_random_mission,
                           get_stat_character_from_srpg, make_response_step, make_url_endpoint)
 
@@ -79,7 +79,6 @@ def start_game(rank: EnumRank = Body(...),
                 **open_api_response_not_found_mission()
             })
 def get_game_in_progress(user: User = Depends(check_if_mission), db: Session = Depends(get_session)):
-
     try:
         mission_playing: MissionPlaying = get_mission_playing(db, user=user)
         mission_db: Mission = get_mission(db, mission_playing.mission_id)
@@ -175,7 +174,8 @@ def get_game_result(user: User = Depends(check_if_mission),
             percent_choice=mission_playing.percent_choice,
             result=finality.value
         ))
-        # AJOUT CASH
+        finality: Finality = get_result_step(db, mission_playing, mission)
+        edit_character(db, character, cash=character.cash + get_cash(character, finality, mission))
         finality: Finality = get_result_step(db, mission_playing, mission)
     except Exception:
         raise HTTPException(
@@ -226,6 +226,8 @@ def edit_position(id_choice: int, user: User = Depends(check_if_mission), db: Se
     try:
         mission_playing: MissionPlaying = get_mission_playing(db, user=user)
         choices = get_choice_from_step(db, step_from=mission_playing.step)
+        print(mission_playing)
+        print(choices)
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server Error")
@@ -241,8 +243,7 @@ def edit_position(id_choice: int, user: User = Depends(check_if_mission), db: Se
         next_step: Step = get_step(db, choice.step_to_id)
         mission_playing = update_mission_playing(db,
                                                  mission_playing,
-                                                 percent_choice=mission_playing.percent_choice +
-                                                 get_choice_value(
+                                                 percent_choice=mission_playing.percent_choice + get_choice_value(
                                                      db, choice, character),
                                                  step=next_step,
                                                  additional_time=get_additional_time(
@@ -262,7 +263,7 @@ def edit_position(id_choice: int, user: User = Depends(check_if_mission), db: Se
 def read_mission(id: int, user: User = Depends(check_if_mission), db: Session = Depends(get_session)):
     try:
         mission_playing: MissionPlaying = get_mission_playing(db, user=user)
-        character = Character = get_character(
+        character: Character = get_character(
             db, id=mission_playing.character_id)
     except Exception:
         raise HTTPException(

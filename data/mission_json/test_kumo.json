@@ -85,7 +85,7 @@
         "caption": "Choice",
         "labels": [],
         "properties": {
-          "sentence": "choix 2",
+          "sentence": "choix 2 Kumo",
           "value": "-20"
         },
         "style": {
@@ -104,7 +104,7 @@
         "caption": "Choice",
         "labels": [],
         "properties": {
-          "sentence": "choix 1",
+          "sentence": "choix 1 Kumo",
           "value": "20"
         },
         "style": {
@@ -137,7 +137,7 @@
         "style": {},
         "labels": [],
         "properties": {
-          "description": "finality 1",
+          "description": "finality 1 Kumo",
           "value": "win"
         }
       },
@@ -151,7 +151,7 @@
         "style": {},
         "labels": [],
         "properties": {
-          "description": "finality 2",
+          "description": "finality 2 Kumo",
           "value": "fail"
         }
       },
@@ -165,7 +165,7 @@
         "style": {},
         "labels": [],
         "properties": {
-          "sentence": "choice 1.1",
+          "sentence": "choice 1.1 Kumo",
           "value": "10"
         }
       },
@@ -178,7 +178,7 @@
         "caption": "Finality",
         "labels": [],
         "properties": {
-          "description": "finality 1.1",
+          "description": "finality 1.1 kumo",
           "value": "win"
         },
         "style": {}
@@ -192,7 +192,7 @@
         "caption": "Finality",
         "labels": [],
         "properties": {
-          "description": "finality 1.2",
+          "description": "finality 1.2 kumo",
           "value": "fail"
         },
         "style": {}

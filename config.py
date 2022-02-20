@@ -2,7 +2,6 @@ import os
 import logging
 from dotenv import load_dotenv
 
-from fastapi_mail import ConnectionConfig
 from pydantic import BaseSettings
 from functools import lru_cache
 

@@ -113,13 +113,15 @@ def create_character(
 
 def edit_character(
         db: Session, character: Character, village: Optional[str] = None, url_avatar: Optional[str] = None,
-        user: Optional['User'] = None):
+        user: Optional['User'] = None, cash: Optional[int] = None):
     if village:
         character.village = village
     if url_avatar:
         character.url_avatar = url_avatar
     if user:
         character.users.append(user)
+    if cash is not None:
+        character.cash = cash
     db.commit()
     db.refresh(character)
     return character

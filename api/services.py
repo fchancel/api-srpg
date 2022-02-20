@@ -14,7 +14,7 @@ from jose import jwt
 from config import get_settings, log
 
 from api.schemas import ChoiceResponse, StepResponse, CharacterCreate
-from api.models import Mission, MissionPlaying, Step, User, Character, Choice
+from api.models import Finality, Mission, MissionPlaying, Step, User, Character, Choice
 from api.crud import (create_rank_stat, get_finality_from_choice, get_missions, create_character, get_character,
                       edit_character)
 
@@ -49,6 +49,30 @@ MISSION_RANK_PERCENT = {
     "A": 35,
     "S": 20
 }
+
+MISSION_REWARD = {
+    "C": 350,
+    "B": 700,
+    "A": 1100,
+    "S": 2000
+}
+
+LOT_PRICE = [5000, 30000, 50000]
+
+# 1 lot inférieur = 14 Missions C (7 jours / 2 Missions par jour)
+# 1 lot inférieur = 7 Missions B (3.5 jours / 2 Missions par jour)
+# 1 lot inférieur = 5 Missions A (5 jours / 1 Mission par jour)
+# 1 lot inférieur = 3 Missions S (3 jours / 1 Mission par jour)
+
+# 1 lot Médium = 85 Missions C (42 jours / 2 Missions par jour)
+# 1 lot Médium = 42 Missions B (21 jours / 2 Missions par jour)
+# 1 lot Médium = 27 Missions A (27 jours / 1 Mission par jour)
+# 1 lot Médium = 15 Missions S (15 jours / 1 Mission par jour)
+
+# 1 lot Supérieur = 142 Missions C (71 jours / 2 Missions par jour)
+# 1 lot Supérieur = 71 Missions B (35 jours / 2 Missions par jour)
+# 1 lot Supérieur = 45 Missions A (45 jours / 1 Mission par jour)
+# 1 lot Supérieur = 25 Missions S (25 jours / 1 Mission par jour)
 
 
 def adding_data_in_db(db: Session, datas=[], refresh: bool = False) -> None:
@@ -278,3 +302,12 @@ def get_additional_time(choice: Choice):
         if condition.type == "Time":
             return condition.value
     return 0
+
+
+def get_cash(character: Character, finality: Finality, mission: Mission):
+    value_base = MISSION_REWARD[mission.rank]
+    if finality.cash == 0:
+        return value_base
+    difference = finality.cash * value_base / 100
+    cash = value_base + difference
+    return floor(cash)
